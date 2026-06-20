@@ -295,11 +295,11 @@ const cityConfigs = ref([])
 const selectedCityId = ref('')
 
 const activeRecommends = computed(() => {
-  return recommends.value.filter((r) => r.status === 1)
+  return recommends.value.filter((r) => Number(r.status) === 1)
 })
 
 const activeCategories = computed(() => {
-  return categoryTree.value.filter((c) => c.status === 1)
+  return categoryTree.value.filter((c) => Number(c.status) === 1)
 })
 
 const selectedCity = computed(() => {

@@ -23,3 +23,19 @@ export const deleteProduct = (id) => {
 export const sortProducts = (items) => {
   return request({ url: '/products/sort', method: 'post', data: { items } })
 }
+
+export const batchToggleProductStatus = (ids, status) => {
+  return request({ url: '/products/batch-toggle-status', method: 'post', data: { ids, status } })
+}
+
+export const batchToggleDefault = (ids, isDefault) => {
+  return request({ url: '/products/batch-toggle-default', method: 'post', data: { ids, isDefault } })
+}
+
+export const toggleProductStatus = (id, status) => {
+  return request({ url: `/products/${id}/toggle-status`, method: 'post', data: { status } })
+}
+
+export const getDefaultProducts = (cityId) => {
+  return request({ url: '/products/defaults', method: 'get', params: { cityId } })
+}

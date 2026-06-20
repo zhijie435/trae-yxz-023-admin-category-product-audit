@@ -52,3 +52,11 @@ export const deleteStoreProductReview = (id) => {
     method: 'delete'
   })
 }
+
+export const resubmitStoreProductReview = (id, data) => {
+  return request({
+    url: `/store-products/${id}/resubmit`,
+    method: 'post',
+    data
+  })
+}

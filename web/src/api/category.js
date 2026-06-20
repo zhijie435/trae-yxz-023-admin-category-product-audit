@@ -52,3 +52,26 @@ export const sortCategories = (data) => {
     data
   })
 }
+
+export const moveCategory = (id, parentId) => {
+  return request({
+    url: `/categories/${id}/move`,
+    method: 'post',
+    data: { parentId }
+  })
+}
+
+export const getCategoryPath = (id) => {
+  return request({
+    url: `/categories/${id}/path`,
+    method: 'get'
+  })
+}
+
+export const batchToggleCategoryStatus = (ids, status) => {
+  return request({
+    url: '/categories/batch-toggle-status',
+    method: 'post',
+    data: { ids, status }
+  })
+}

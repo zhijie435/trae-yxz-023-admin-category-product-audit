@@ -1,9 +1,74 @@
 [
-  {"id":"cp-1","cityId":"city-5","productId":"prod-3","sort":0,"status":1,"createdAt":"2026-06-20T08:00:00.000Z","updatedAt":"2026-06-20T08:00:00.000Z"},
-  {"id":"cp-2","cityId":"city-5","productId":"prod-1","sort":1,"status":1,"createdAt":"2026-06-20T08:00:00.000Z","updatedAt":"2026-06-20T08:00:00.000Z"},
-  {"id":"cp-3","cityId":"city-5","productId":"prod-9","sort":2,"status":1,"createdAt":"2026-06-20T08:00:00.000Z","updatedAt":"2026-06-20T08:00:00.000Z"},
-  {"id":"cp-4","cityId":"city-6","productId":"prod-4","sort":0,"status":1,"createdAt":"2026-06-20T08:00:00.000Z","updatedAt":"2026-06-20T08:00:00.000Z"},
-  {"id":"cp-5","cityId":"city-6","productId":"prod-11","sort":1,"status":1,"createdAt":"2026-06-20T08:00:00.000Z","updatedAt":"2026-06-20T08:00:00.000Z"},
-  {"id":"cp-6","cityId":"city-7","productId":"prod-7","sort":0,"status":1,"createdAt":"2026-06-20T08:00:00.000Z","updatedAt":"2026-06-20T08:00:00.000Z"},
-  {"id":"cp-7","cityId":"city-7","productId":"prod-8","sort":1,"status":1,"createdAt":"2026-06-20T08:00:00.000Z","updatedAt":"2026-06-20T08:00:00.000Z"}
+  {
+    "id": "cp-1",
+    "cityId": "city-5",
+    "productId": "prod-3",
+    "sort": 0,
+    "status": 1,
+    "createdAt": "2026-06-20T08:00:00.000Z",
+    "updatedAt": "2026-06-20T08:00:00.000Z"
+  },
+  {
+    "id": "cp-2",
+    "cityId": "city-5",
+    "productId": "prod-1",
+    "sort": 1,
+    "status": 1,
+    "createdAt": "2026-06-20T08:00:00.000Z",
+    "updatedAt": "2026-06-20T08:00:00.000Z"
+  },
+  {
+    "id": "cp-3",
+    "cityId": "city-5",
+    "productId": "prod-9",
+    "sort": 2,
+    "status": 1,
+    "createdAt": "2026-06-20T08:00:00.000Z",
+    "updatedAt": "2026-06-20T08:00:00.000Z"
+  },
+  {
+    "id": "cp-4",
+    "cityId": "city-6",
+    "productId": "prod-4",
+    "sort": 0,
+    "status": 1,
+    "createdAt": "2026-06-20T08:00:00.000Z",
+    "updatedAt": "2026-06-20T08:00:00.000Z"
+  },
+  {
+    "id": "cp-5",
+    "cityId": "city-6",
+    "productId": "prod-11",
+    "sort": 1,
+    "status": 1,
+    "createdAt": "2026-06-20T08:00:00.000Z",
+    "updatedAt": "2026-06-20T08:00:00.000Z"
+  },
+  {
+    "id": "cp-6",
+    "cityId": "city-7",
+    "productId": "prod-7",
+    "sort": 0,
+    "status": 1,
+    "createdAt": "2026-06-20T08:00:00.000Z",
+    "updatedAt": "2026-06-20T08:00:00.000Z"
+  },
+  {
+    "id": "cp-7",
+    "cityId": "city-7",
+    "productId": "prod-8",
+    "sort": 1,
+    "status": 1,
+    "createdAt": "2026-06-20T08:00:00.000Z",
+    "updatedAt": "2026-06-20T08:00:00.000Z"
+  },
+  {
+    "id": "cp-1781954648503-1js927",
+    "cityId": "city-2",
+    "productId": "prod-1781954648503-paqahs",
+    "sort": 0,
+    "status": 1,
+    "createdAt": "2026-06-20T11:24:08.503Z",
+    "updatedAt": "2026-06-20T11:24:08.503Z"
+  }
 ]

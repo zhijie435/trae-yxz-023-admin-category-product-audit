@@ -148,7 +148,7 @@
             <span v-else class="muted">--</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="220" align="center" fixed="right">
+        <el-table-column label="操作" width="280" align="center" fixed="right">
           <template #default="{ row }">
             <template v-if="row.reviewStatus === 'pending'">
               <el-button link type="success" @click="openReviewDialog(row, 'approve')">
@@ -158,14 +158,21 @@
                 驳回
               </el-button>
             </template>
-            <el-tag
-              v-if="row.reviewStatus === 'approved' && row.productId"
-              type="success"
-              size="small"
-              effect="light"
-            >
-              已上架
-            </el-tag>
+            <template v-else-if="row.reviewStatus === 'rejected'">
+              <el-button link type="primary" @click="openResubmitDialog(row)">
+                重新提交
+              </el-button>
+            </template>
+            <template v-else-if="row.reviewStatus === 'approved'">
+              <el-tag
+                v-if="row.productId"
+                type="success"
+                size="small"
+                effect="light"
+              >
+                已入商品库
+              </el-tag>
+            </template>
             <el-popconfirm
               :title="`确定要删除该审核记录吗？`"
               @confirm="handleDelete(row)"
@@ -356,6 +363,134 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="resubmitDialogVisible"
+      title="重新提交商品审核"
+      width="600px"
+      destroy-on-close
+      @close="resetResubmitForm"
+    >
+      <el-alert
+        type="warning"
+        :closable="false"
+        show-icon
+        :title="`驳回原因：${resubmitRow?.reviewRemark || ''}`"
+        style="margin-bottom: 16px"
+      />
+      <el-form
+        ref="resubmitFormRef"
+        :model="resubmitForm"
+        :rules="submitRules"
+        label-width="100px"
+      >
+        <el-form-item label="提交城市" prop="cityId">
+          <el-select
+            v-model="resubmitForm.cityId"
+            placeholder="请选择城市合伙人所在城市"
+            filterable
+            style="width: 100%"
+          >
+            <el-option
+              v-for="city in cities"
+              :key="city.id"
+              :label="`${city.name}（${city.province}）`"
+              :value="city.id"
+            >
+              <span style="float: left">{{ city.name }}</span>
+              <span style="float: right; color: #909399; font-size: 12px">
+                {{ city.isFranchise ? '加盟' : '非加盟' }}
+              </span>
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="商品名称" prop="name">
+          <el-input
+            v-model="resubmitForm.name"
+            placeholder="请输入商品名称"
+            maxlength="50"
+            show-word-limit
+          />
+        </el-form-item>
+        <el-form-item label="所属分类" prop="categoryId">
+          <el-cascader
+            v-model="resubmitForm.categoryCascader"
+            :options="categoryTree"
+            :props="{ checkStrictly: true, value: 'id', label: 'name', children: 'children' }"
+            placeholder="请选择分类（选二级分类）"
+            style="width: 100%"
+            @change="onResubmitCascaderChange"
+          />
+        </el-form-item>
+        <el-form-item label="图标" prop="icon">
+          <el-input
+            v-model="resubmitForm.icon"
+            placeholder="请输入 emoji 图标"
+            maxlength="4"
+          />
+          <div class="form-tip">支持 emoji 图标，如：🍲 👗 📱</div>
+        </el-form-item>
+        <el-form-item label="商品描述" prop="description">
+          <el-input
+            v-model="resubmitForm.description"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入商品描述"
+            maxlength="200"
+            show-word-limit
+          />
+        </el-form-item>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="售价" prop="price">
+              <el-input-number
+                v-model="resubmitForm.price"
+                :min="0"
+                :precision="2"
+                :step="10"
+                style="width: 100%"
+                placeholder="请输入售价"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="原价">
+              <el-input-number
+                v-model="resubmitForm.originalPrice"
+                :min="0"
+                :precision="2"
+                :step="10"
+                style="width: 100%"
+                placeholder="请输入原价"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="标签">
+          <el-select
+            v-model="resubmitForm.tags"
+            multiple
+            filterable
+            allow-create
+            default-first-option
+            placeholder="选择或创建标签"
+            style="width: 100%"
+          >
+            <el-option label="热销" value="热销" />
+            <el-option label="推荐" value="推荐" />
+            <el-option label="新品" value="新品" />
+            <el-option label="招牌" value="招牌" />
+            <el-option label="限量" value="限量" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="resubmitDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="resubmitLoading" @click="handleResubmit">
+          重新提交
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -371,7 +506,8 @@ import {
   createStoreProductReview,
   approveStoreProductReview,
   rejectStoreProductReview,
-  deleteStoreProductReview
+  deleteStoreProductReview,
+  resubmitStoreProductReview
 } from '@/api/storeProduct'
 
 const loading = ref(false)
@@ -421,6 +557,22 @@ const submitRules = {
     { type: 'number', min: 0, message: '售价必须大于等于0', trigger: 'blur' }
   ]
 }
+
+const resubmitDialogVisible = ref(false)
+const resubmitFormRef = ref(null)
+const resubmitLoading = ref(false)
+const resubmitRow = ref(null)
+const resubmitForm = reactive({
+  cityId: '',
+  name: '',
+  categoryId: '',
+  categoryCascader: [],
+  icon: '📦',
+  description: '',
+  price: 0,
+  originalPrice: 0,
+  tags: []
+})
 
 const statCards = [
   { key: '', field: 'total', label: '全部申请', cls: 'stat-total' },
@@ -582,6 +734,83 @@ async function handleDelete(row) {
     ElMessage.success('删除成功')
     loadReviews()
   } catch {}
+}
+
+function openResubmitDialog(row) {
+  resubmitRow.value = row
+  resubmitForm.cityId = row.cityId
+  resubmitForm.name = row.name
+  resubmitForm.categoryId = row.categoryId
+  resubmitForm.icon = row.icon || '📦'
+  resubmitForm.description = row.description || ''
+  resubmitForm.price = Number(row.price) || 0
+  resubmitForm.originalPrice = Number(row.originalPrice) || resubmitForm.price
+  resubmitForm.tags = Array.isArray(row.tags) ? [...row.tags] : []
+
+  const ancestors = []
+  function findPath(nodes, targetId, path) {
+    for (const node of nodes) {
+      const newPath = [...path, node.id]
+      if (node.id === targetId) {
+        ancestors.push(...newPath)
+        return true
+      }
+      if (node.children && findPath(node.children, targetId, newPath)) {
+        return true
+      }
+    }
+    return false
+  }
+  findPath(categoryTree.value, row.categoryId, [])
+  resubmitForm.categoryCascader = ancestors
+
+  resubmitDialogVisible.value = true
+}
+
+function onResubmitCascaderChange(val) {
+  if (val && val.length > 0) {
+    resubmitForm.categoryId = val[val.length - 1]
+  } else {
+    resubmitForm.categoryId = ''
+  }
+}
+
+function resetResubmitForm() {
+  resubmitRow.value = null
+  resubmitForm.cityId = ''
+  resubmitForm.name = ''
+  resubmitForm.categoryId = ''
+  resubmitForm.categoryCascader = []
+  resubmitForm.icon = '📦'
+  resubmitForm.description = ''
+  resubmitForm.price = 0
+  resubmitForm.originalPrice = 0
+  resubmitForm.tags = []
+  resubmitFormRef.value?.resetFields()
+}
+
+async function handleResubmit() {
+  if (!resubmitFormRef.value || !resubmitRow.value) return
+  await resubmitFormRef.value.validate(async (valid) => {
+    if (!valid) return
+    resubmitLoading.value = true
+    try {
+      await resubmitStoreProductReview(resubmitRow.value.id, {
+        name: resubmitForm.name,
+        categoryId: resubmitForm.categoryId,
+        icon: resubmitForm.icon,
+        description: resubmitForm.description,
+        price: resubmitForm.price,
+        originalPrice: resubmitForm.originalPrice,
+        tags: resubmitForm.tags
+      })
+      ElMessage.success('重新提交成功，等待总部审核')
+      resubmitDialogVisible.value = false
+      loadReviews()
+    } finally {
+      resubmitLoading.value = false
+    }
+  })
 }
 
 onMounted(() => {

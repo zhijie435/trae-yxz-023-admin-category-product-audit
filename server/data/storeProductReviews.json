@@ -2,11 +2,11 @@
   {
     "id": "spr-1001",
     "cityId": "city-5",
-    "name": "招牌小龙虾拌面",
+    "name": "招牌小龙虾拌面（升级版）",
     "categoryId": "cat-1-1",
     "icon": "🍜",
     "description": "杭州门店特色，鲜活小龙虾去壳拌面，每日限量供应",
-    "price": 58,
+    "price": 68,
     "originalPrice": 78,
     "tags": [
       "招牌",
@@ -14,11 +14,11 @@
     ],
     "reviewStatus": "pending",
     "reviewRemark": "",
-    "submittedAt": "2026-06-20T09:12:00.000Z",
+    "submittedAt": "2026-06-20T11:24:25.802Z",
     "reviewedAt": "",
     "productId": "",
     "createdAt": "2026-06-20T09:12:00.000Z",
-    "updatedAt": "2026-06-20T09:12:00.000Z"
+    "updatedAt": "2026-06-20T11:24:25.802Z"
   },
   {
     "id": "spr-1002",
@@ -33,13 +33,13 @@
       "新品",
       "高端"
     ],
-    "reviewStatus": "pending",
-    "reviewRemark": "",
+    "reviewStatus": "approved",
+    "reviewRemark": "测试审核通过",
     "submittedAt": "2026-06-20T10:30:00.000Z",
-    "reviewedAt": "",
-    "productId": "",
+    "reviewedAt": "2026-06-20T11:24:08.502Z",
+    "productId": "prod-1781954648503-paqahs",
     "createdAt": "2026-06-20T10:30:00.000Z",
-    "updatedAt": "2026-06-20T10:30:00.000Z"
+    "updatedAt": "2026-06-20T11:24:08.502Z"
   },
   {
     "id": "spr-1003",
