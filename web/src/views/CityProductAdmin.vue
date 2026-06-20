@@ -1,278 +1,238 @@
 <template>
   <div class="city-product-admin page-container">
-    <div class="page-toolbar">
-      <div class="left">
-        <el-alert
-          type="success"
-          :closable="false"
-          show-icon
-          title="每个城市（含加盟/非加盟）拥有独立的商品池：官方默认商品 + 城市自选商品合并展示，可拖拽或上下移动调整展示顺序"
+    <div class="layout">
+      <div class="left-panel">
+        <div class="panel-header">
+          <el-icon class="header-icon"><Location /></el-icon>
+          <span class="header-title">非加盟城市列表</span>
+          <el-tag type="info" size="small">{{ cities.length }} 个</el-tag>
+        </div>
+        <div class="city-list">
+          <div
+            v-for="city in cities"
+            :key="city.id"
+            class="city-item"
+            :class="{ active: activeCityId === city.id }"
+            @click="selectCity(city)"
+          >
+            <div class="city-left">
+              <div class="city-name-row">
+                <span class="city-name">{{ city.name }}</span>
+                <el-tag type="primary" size="small" effect="light">直营</el-tag>
+              </div>
+              <div class="city-province">{{ city.province }}</div>
+            </div>
+            <div class="city-right">
+              <el-badge
+                v-if="getCityCount(city.id) > 0"
+                :value="getCityCount(city.id)"
+                class="city-badge"
+                :max="99"
+              />
+              <el-icon class="arrow-icon"><ArrowRight /></el-icon>
+            </div>
+          </div>
+          <el-empty v-if="cities.length === 0" description="暂无非加盟城市" :image-size="80" />
+        </div>
+      </div>
+
+      <div class="right-panel">
+        <template v-if="activeCity">
+          <div class="panel-header right-header">
+            <div class="header-left">
+              <el-icon class="header-icon"><Goods /></el-icon>
+              <span class="city-title">{{ activeCity.name }} - 商品配置</span>
+              <el-tag v-if="isVirtualMode" type="info" size="small" effect="light">
+                总部默认模式
+              </el-tag>
+            </div>
+            <div class="header-right">
+              <el-tooltip content="清除该城市所有自定义配置，恢复使用总部默认商品" placement="top">
+                <el-button
+                  type="warning"
+                  :icon="RefreshLeft"
+                  :disabled="isVirtualMode"
+                  @click="handleResetDefault"
+                >
+                  重置为总部默认
+                </el-button>
+              </el-tooltip>
+              <el-button
+                type="primary"
+                :icon="Plus"
+                @click="openAddDialog"
+              >
+                批量添加商品
+              </el-button>
+            </div>
+          </div>
+
+          <el-alert
+            v-if="isVirtualMode"
+            type="info"
+            :closable="false"
+            show-icon
+            class="virtual-alert"
+            title="当前显示的是总部默认虚拟商品，添加自定义商品后将不再显示默认商品"
+          />
+
+          <div class="product-list">
+            <div
+              v-for="(item, index) in displayProducts"
+              :key="item._key"
+              class="product-item"
+              :class="{ virtual: item.isVirtual }"
+            >
+              <el-badge :value="index + 1" class="index-badge" />
+              <span class="product-icon">{{ item.productIcon }}</span>
+              <div class="product-main">
+                <div class="product-name-row">
+                  <span class="product-name">{{ item.productName }}</span>
+                  <el-tag v-if="item.isVirtual" type="info" size="small" effect="plain">
+                    总部默认（虚拟）
+                  </el-tag>
+                </div>
+                <div class="product-meta">
+                  <span class="product-price">¥{{ Number(item.productPrice).toFixed(2) }}</span>
+                  <span class="product-category">{{ item.productFullCategoryName }}</span>
+                </div>
+              </div>
+              <div class="product-actions">
+                <el-button
+                  link
+                  type="primary"
+                  :disabled="index === 0"
+                  @click="moveUp(index)"
+                >
+                  <el-icon><Top /></el-icon>
+                  <span>上移</span>
+                </el-button>
+                <el-button
+                  link
+                  type="primary"
+                  :disabled="index === displayProducts.length - 1"
+                  @click="moveDown(index)"
+                >
+                  <el-icon><Bottom /></el-icon>
+                  <span>下移</span>
+                </el-button>
+                <el-button
+                  v-if="!item.isVirtual"
+                  link
+                  type="danger"
+                  @click="handleDelete(item)"
+                >
+                  <el-icon><Delete /></el-icon>
+                  <span>删除</span>
+                </el-button>
+                <el-tooltip v-else content="虚拟商品不可删除" placement="top">
+                  <el-button link type="danger" disabled>
+                    <el-icon><Delete /></el-icon>
+                    <span>删除</span>
+                  </el-button>
+                </el-tooltip>
+              </div>
+            </div>
+            <el-empty
+              v-if="displayProducts.length === 0"
+              description="暂无商品"
+              :image-size="100"
+            >
+              <el-button type="primary" @click="openAddDialog">立即添加</el-button>
+            </el-empty>
+          </div>
+        </template>
+        <el-empty
+          v-else
+          description="请先在左侧选择一个城市"
+          :image-size="150"
         />
       </div>
     </div>
 
-    <el-row :gutter="20">
-      <el-col :span="7">
-        <el-card shadow="never" class="city-card">
-          <template #header>
-            <div class="card-header">
-              <span>城市列表</span>
-              <el-tag type="warning" size="small">共 {{ cities.length }} 个</el-tag>
-            </div>
-          </template>
-          <div class="city-list">
-            <div
-              v-for="city in cities"
-              :key="city.id"
-              class="city-item"
-              :class="{ active: activeCityId === city.id }"
-              @click="selectCity(city)"
-            >
-              <div class="city-left">
-                <el-icon class="city-icon"><LocationFilled /></el-icon>
-                <div>
-                  <div class="city-name">{{ city.name }}</div>
-                  <div class="city-sub">{{ city.province }} · {{ city.code }}</div>
-                </div>
-              </div>
-              <div class="city-right">
-                <el-tag :type="city.isFranchise ? 'danger' : 'info'" size="small" effect="plain">
-                  {{ city.isFranchise ? '加盟' : '非加盟' }}
-                </el-tag>
-                <el-tag
-                  v-if="poolData && poolData.cityId === city.id"
-                  type="success"
-                  size="small"
-                  effect="light"
-                >
-                  {{ poolData.total }} 件
-                </el-tag>
-                <el-icon class="arrow"><ArrowRight /></el-icon>
-              </div>
-            </div>
-            <div v-if="cities.length === 0" class="empty-tip">暂无城市</div>
-          </div>
-        </el-card>
-      </el-col>
-
-      <el-col :span="17">
-        <el-card shadow="never" class="config-card">
-          <template #header>
-            <div class="card-header">
-              <div class="header-left">
-                <el-icon><Goods /></el-icon>
-                <span v-if="poolData">「{{ poolData.cityName }}」城市商品池</span>
-                <span v-else>请选择左侧城市</span>
-                <template v-if="poolData">
-                  <el-tag type="success" size="small" effect="dark">官方默认 {{ poolData.officialDefaultCount }}</el-tag>
-                  <el-tag type="warning" size="small" effect="dark">城市自选 {{ poolData.cityAddedCount }}</el-tag>
-                </template>
-              </div>
-              <div class="header-right">
-                <el-tooltip content="拖动商品行或使用上下移按钮调整展示顺序，保存后生效" placement="top">
-                  <el-icon class="help-icon"><QuestionFilled /></el-icon>
-                </el-tooltip>
-                <el-button
-                  type="success"
-                  :icon="Check"
-                  :disabled="!dirty || !poolData"
-                  :loading="saving"
-                  @click="saveSort"
-                >
-                  保存排序
-                </el-button>
-                <el-button
-                  type="primary"
-                  :icon="Plus"
-                  :disabled="!poolData"
-                  @click="openProductSelector"
-                >
-                  添加商品
-                </el-button>
-              </div>
-            </div>
-          </template>
-
-          <div v-if="poolData" class="config-content" v-loading="loading">
-            <div v-if="localPool.length > 0">
-              <div
-                v-for="(item, index) in localPool"
-                :key="item.productId"
-                class="product-config-item"
-                :class="{
-                  'is-official': item.isOfficialDefault,
-                  'is-custom': !item.isOfficialDefault,
-                  dragging: dragIndex === index
-                }"
-                draggable="true"
-                @dragstart="onDragStart(index)"
-                @dragover.prevent="onDragOver(index)"
-                @dragend="onDragEnd"
-                @drop.prevent="onDrop"
-              >
-                <div class="drag-handle" title="拖动排序">
-                  <el-icon><Rank /></el-icon>
-                </div>
-                <div class="rank-badge">{{ index + 1 }}</div>
-                <span class="product-icon">{{ item.productIcon }}</span>
-                <div class="product-main">
-                  <div class="product-name">
-                    {{ item.productName }}
-                    <el-tag
-                      v-if="item.isOfficialDefault"
-                      type="success"
-                      size="small"
-                      effect="plain"
-                    >
-                      官方默认
-                    </el-tag>
-                    <el-tag
-                      v-if="!item.isOfficialDefault"
-                      type="warning"
-                      size="small"
-                      effect="plain"
-                    >
-                      城市自选
-                    </el-tag>
-                  </div>
-                  <div class="product-meta">
-                    {{ item.productFullCategoryName }} · ¥{{ Number(item.productPrice).toFixed(2) }}
-                  </div>
-                </div>
-                <div class="product-actions">
-                  <el-button
-                    link
-                    type="primary"
-                    :disabled="index === 0"
-                    @click="moveUp(index)"
-                  >
-                    <el-icon><Top /></el-icon>
-                    上移
-                  </el-button>
-                  <el-button
-                    link
-                    type="primary"
-                    :disabled="index === localPool.length - 1"
-                    @click="moveDown(index)"
-                  >
-                    <el-icon><Bottom /></el-icon>
-                    下移
-                  </el-button>
-                  <el-popconfirm
-                    :title="
-                      item.isOfficialDefault
-                        ? '将清除该商品在本城市的显式排序（商品仍作为官方默认出现在池中）？'
-                        : '确定要从该城市商品池中移除吗？'
-                    "
-                    @confirm="removeProduct(item)"
-                  >
-                    <template #reference>
-                      <el-button link type="danger">
-                        <el-icon><Delete /></el-icon>
-                        移除
-                      </el-button>
-                    </template>
-                  </el-popconfirm>
-                </div>
-              </div>
-            </div>
-            <el-empty
-              v-else
-              description="暂无商品，请添加商品到城市池"
-              :image-size="120"
-            />
-          </div>
-
-          <el-empty
-            v-else
-            description="请先在左侧选择一个城市"
-            :image-size="150"
-          />
-        </el-card>
-      </el-col>
-    </el-row>
-
     <el-dialog
-      v-model="selectorVisible"
-      title="添加商品到城市商品池"
-      width="720px"
+      v-model="addDialogVisible"
+      title="批量添加商品"
+      width="820px"
       destroy-on-close
     >
-      <div class="selector-toolbar">
+      <div class="dialog-toolbar">
         <el-input
-          v-model="selectorKeyword"
+          v-model="searchKeyword"
           placeholder="搜索商品名称"
           :prefix-icon="Search"
           clearable
           style="width: 260px"
         />
         <el-select
-          v-model="selectorCategory"
-          placeholder="选择一级分类"
+          v-model="filterCategoryId"
+          placeholder="选择分类"
           clearable
-          style="width: 180px"
+          style="width: 200px"
         >
           <el-option
-            v-for="cat in parentCategories"
+            v-for="cat in topLevelCategories"
             :key="cat.id"
-            :label="`${cat.icon || ''} ${cat.name}`"
+            :label="cat.name"
             :value="cat.id"
           />
         </el-select>
-        <el-radio-group v-model="selectorScope" size="small">
-          <el-radio-button value="all">全部商品</el-radio-button>
-          <el-radio-button value="default">默认商品</el-radio-button>
-        </el-radio-group>
+        <span class="dialog-tip">共 {{ filteredProducts.length }} 个可选商品</span>
       </div>
       <el-table
-        ref="selectorTableRef"
-        :data="filteredSelectorProducts"
-        height="400"
-        @selection-change="onSelectorSelectionChange"
+        ref="tableRef"
+        :data="filteredProducts"
+        height="420"
+        @selection-change="onSelectionChange"
       >
-        <el-table-column type="selection" width="50" />
-        <el-table-column label="商品" min-width="220">
+        <el-table-column type="selection" width="50" :selectable="isProductSelectable" />
+        <el-table-column label="商品" min-width="260">
           <template #default="{ row }">
-            <div style="display:flex;align-items:center;gap:10px">
-              <span style="font-size:28px">{{ row.icon }}</span>
+            <div class="table-product-cell">
+              <span class="table-product-icon">{{ row.icon }}</span>
               <div>
-                <div style="font-weight:500">{{ row.name }}</div>
-                <div style="font-size:12px;color:#999">{{ row.fullCategoryName }}</div>
+                <div class="table-product-name">{{ row.name }}</div>
+                <div class="table-product-category">{{ row.fullCategoryName }}</div>
               </div>
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="价格" width="120" align="right">
+        <el-table-column label="价格" width="110" align="right">
           <template #default="{ row }">
-            <span style="color:#f56c6c;font-weight:600">¥{{ Number(row.price).toFixed(2) }}</span>
+            <span class="table-price">¥{{ Number(row.price).toFixed(2) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="默认" width="80" align="center">
+        <el-table-column label="销量" width="90" align="center">
           <template #default="{ row }">
-            <el-tag v-if="row.isDefault" type="success" size="small">是</el-tag>
-            <span v-else style="color:#c0c4cc">--</span>
+            {{ formatSales(row.salesCount) }}
           </template>
         </el-table-column>
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="isInPool(row.id) ? 'success' : 'info'" size="small">
-              {{ isInPool(row.id) ? '已在池中' : '可添加' }}
+            <el-tag
+              v-if="isProductExist(row.id)"
+              type="info"
+              size="small"
+            >
+              已存在
             </el-tag>
+            <el-tag v-else type="success" size="small">可添加</el-tag>
           </template>
         </el-table-column>
       </el-table>
       <template #footer>
-        <span>已选择 {{ selectorSelectedIds.length }} 个可添加商品</span>
-        <div>
-          <el-button @click="selectorVisible = false">取消</el-button>
-          <el-button
-            type="primary"
-            :disabled="selectorSelectedIds.length === 0"
-            :loading="adding"
-            @click="confirmAddProducts"
-          >
-            确定添加 ({{ selectorSelectedIds.length }})
-          </el-button>
+        <div class="dialog-footer">
+          <span>已选择 {{ selectedIds.length }} 个商品</span>
+          <div>
+            <el-button @click="addDialogVisible = false">取消</el-button>
+            <el-button
+              type="primary"
+              :disabled="selectedIds.length === 0"
+              @click="handleConfirmAdd"
+            >
+              确定添加 ({{ selectedIds.length }})
+            </el-button>
+          </div>
         </div>
       </template>
     </el-dialog>
@@ -283,274 +243,405 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  Plus, Search, LocationFilled, ArrowRight, Goods,
-  QuestionFilled, Top, Bottom, Delete, Rank, Check
+  Location, ArrowRight, Goods, Plus, RefreshLeft, Search,
+  Top, Bottom, Delete
 } from '@element-plus/icons-vue'
-import { getCategories } from '@/api/category'
-import { getProducts } from '@/api/product'
 import {
   getCities,
-  getCityProductPool,
-  saveCityPoolSort,
-  removePoolProduct,
-  batchAddCityProducts
+  getCityProductsByCity,
+  batchCityProducts,
+  resetDefaultCityProducts,
+  deleteCityProduct,
+  sortCityProducts
 } from '@/api/cityProduct'
-
-const loading = ref(false)
-const saving = ref(false)
-const adding = ref(false)
+import { getProducts } from '@/api/product'
+import { getCategoryTree } from '@/api/category'
 
 const cities = ref([])
-const poolData = ref(null)
-const localPool = ref([])
-const parentCategories = ref([])
 const allProducts = ref([])
-
+const categoryTree = ref([])
 const activeCityId = ref('')
-const dirty = ref(false)
+const cityProductMap = ref({})
 
-const dragIndex = ref(-1)
+const addDialogVisible = ref(false)
+const searchKeyword = ref('')
+const filterCategoryId = ref('')
+const selectedIds = ref([])
+const tableRef = ref(null)
 
-const selectorVisible = ref(false)
-const selectorKeyword = ref('')
-const selectorCategory = ref('')
-const selectorScope = ref('all')
-const selectorSelectedIds = ref([])
-const selectorTableRef = ref(null)
+const defaultProducts = ref([])
+const currentCityProducts = ref([])
+const localSort = ref([])
 
-const filteredSelectorProducts = computed(() => {
-  let list = allProducts.value.filter((p) => Number(p.status) === 1)
-  if (selectorScope.value === 'default') {
-    list = list.filter((p) => p.isDefault)
+const activeCity = computed(() => {
+  return cities.value.find((c) => c.id === activeCityId.value) || null
+})
+
+const isVirtualMode = computed(() => {
+  return currentCityProducts.value.length === 0
+})
+
+const displayProducts = computed(() => {
+  if (localSort.value.length > 0) {
+    return localSort.value
   }
-  if (selectorKeyword.value) {
-    const kw = selectorKeyword.value.trim()
+  if (isVirtualMode.value) {
+    return defaultProducts.value.map((p, idx) => ({
+      _key: `v_${p.id}`,
+      id: '',
+      productId: p.id,
+      productName: p.name,
+      productIcon: p.icon,
+      productPrice: p.price,
+      productFullCategoryName: p.fullCategoryName,
+      isVirtual: true,
+      sort: idx
+    }))
+  }
+  return currentCityProducts.value.map((cp) => ({
+    _key: `r_${cp.id}`,
+    id: cp.id,
+    productId: cp.productId,
+    productName: cp.productName,
+    productIcon: cp.productIcon,
+    productPrice: cp.productPrice,
+    productFullCategoryName: cp.productFullCategoryName,
+    isVirtual: false,
+    sort: cp.sort
+  }))
+})
+
+const topLevelCategories = computed(() => {
+  return categoryTree.value.map((n) => ({ id: n.id, name: n.name }))
+})
+
+const existProductIds = computed(() => {
+  const ids = new Set()
+  if (isVirtualMode.value) {
+    defaultProducts.value.forEach((p) => ids.add(p.id))
+  } else {
+    currentCityProducts.value.forEach((cp) => ids.add(cp.productId))
+  }
+  return ids
+})
+
+const filteredProducts = computed(() => {
+  let list = allProducts.value
+  if (searchKeyword.value) {
+    const kw = searchKeyword.value.trim()
     list = list.filter(
       (p) => p.name.includes(kw) || (p.description && p.description.includes(kw))
     )
   }
-  if (selectorCategory.value) {
-    const cats = parentCategories.value
-    const parent = cats.find((c) => c.id === selectorCategory.value)
-    if (parent) {
-      list = list.filter((p) => p.parentCategoryName === parent.name)
+  if (filterCategoryId.value) {
+    const allChildIds = new Set()
+    const collect = (nodes, targetId) => {
+      const found = nodes.find((n) => n.id === targetId)
+      if (found) {
+        const walk = (n) => {
+          allChildIds.add(n.id)
+          if (n.children) n.children.forEach(walk)
+        }
+        walk(found)
+        return true
+      }
+      for (const n of nodes) {
+        if (n.children && collect(n.children, targetId)) return true
+      }
+      return false
     }
+    collect(categoryTree.value, filterCategoryId.value)
+    list = list.filter((p) => {
+      return allChildIds.has(p.categoryId) ||
+        (p.parentCategoryId && allChildIds.has(p.parentCategoryId))
+    })
   }
   return list
 })
 
-function isInPool(productId) {
-  return localPool.value.some((p) => p.productId === productId)
+function getCityCount(cityId) {
+  const cfg = cityProductMap.value[cityId]
+  return cfg ? cfg.length : 0
+}
+
+function isProductExist(productId) {
+  return existProductIds.value.has(productId)
+}
+
+function isProductSelectable(row) {
+  return !isProductExist(row.id)
+}
+
+function formatSales(num) {
+  if (num >= 10000) return (num / 10000).toFixed(1) + 'w'
+  return num
 }
 
 async function selectCity(city) {
-  if (activeCityId.value === city.id) return
-  if (dirty.value) {
-    try {
-      await ElMessageBox.confirm(
-        '当前城市排序未保存，切换城市将丢失修改，是否继续？',
-        '提示',
-        { type: 'warning' }
-      )
-    } catch {
-      return
-    }
-  }
   activeCityId.value = city.id
-  loadPool(city.id)
+  localSort.value = []
+  await loadCityProducts(city.id)
 }
 
 async function loadCities() {
-  cities.value = await getCities({ status: 1 })
-  if (cities.value.length > 0 && !activeCityId.value) {
-    activeCityId.value = cities.value[0].id
-    loadPool(activeCityId.value)
-  }
-}
-
-async function loadPool(cityId) {
-  loading.value = true
-  dirty.value = false
-  try {
-    const data = await getCityProductPool(cityId)
-    poolData.value = data
-    localPool.value = (data.pool || []).map((p) => ({ ...p }))
-  } finally {
-    loading.value = false
-  }
-}
-
-async function loadParentCategories() {
-  parentCategories.value = await getCategories({ parentId: 'null' })
+  cities.value = await getCities({ isFranchise: 0 })
 }
 
 async function loadAllProducts() {
   allProducts.value = await getProducts({ status: 1 })
+  defaultProducts.value = allProducts.value.filter((p) => p.isDefault)
 }
 
-function markDirty() {
-  dirty.value = true
+async function loadCategoryTree() {
+  categoryTree.value = await getCategoryTree()
 }
 
-function moveUp(index) {
-  if (index <= 0) return
-  const arr = [...localPool.value]
-  const tmp = arr[index - 1]
-  arr[index - 1] = arr[index]
-  arr[index] = tmp
-  localPool.value = arr
-  markDirty()
-}
-
-function moveDown(index) {
-  const arr = [...localPool.value]
-  if (index >= arr.length - 1) return
-  const tmp = arr[index + 1]
-  arr[index + 1] = arr[index]
-  arr[index] = tmp
-  localPool.value = arr
-  markDirty()
-}
-
-function onDragStart(index) {
-  dragIndex.value = index
-}
-function onDragOver(index) {
-  if (dragIndex.value === -1 || dragIndex.value === index) return
-  const arr = [...localPool.value]
-  const [moved] = arr.splice(dragIndex.value, 1)
-  arr.splice(index, 0, moved)
-  localPool.value = arr
-  dragIndex.value = index
-  markDirty()
-}
-function onDrop() {
-  dragIndex.value = -1
-}
-function onDragEnd() {
-  dragIndex.value = -1
-}
-
-async function saveSort() {
-  if (!poolData.value || localPool.value.length === 0) return
-  saving.value = true
-  try {
-    const items = localPool.value.map((p, idx) => ({ productId: p.productId, sort: idx }))
-    await saveCityPoolSort(poolData.value.cityId, items)
-    ElMessage.success('商品池排序已保存')
-    dirty.value = false
-    await loadPool(poolData.value.cityId)
-  } finally {
-    saving.value = false
+async function loadAllCityProductCounts() {
+  cityProductMap.value = {}
+  for (const city of cities.value) {
+    try {
+      const list = await getCityProductsByCity(city.id)
+      cityProductMap.value[city.id] = list || []
+    } catch {
+      cityProductMap.value[city.id] = []
+    }
   }
 }
 
-async function removeProduct(item) {
+async function loadCityProducts(cityId) {
   try {
-    await removePoolProduct(poolData.value.cityId, item.productId)
-    ElMessage.success('操作成功')
-    await loadPool(poolData.value.cityId)
-  } catch (e) {
-    // ignore
+    const list = await getCityProductsByCity(cityId)
+    currentCityProducts.value = list || []
+  } catch {
+    currentCityProducts.value = []
   }
 }
 
-function openProductSelector() {
-  selectorKeyword.value = ''
-  selectorCategory.value = ''
-  selectorScope.value = 'all'
-  selectorSelectedIds.value = []
-  selectorVisible.value = true
+function openAddDialog() {
+  searchKeyword.value = ''
+  filterCategoryId.value = ''
+  selectedIds.value = []
+  addDialogVisible.value = true
   nextTick(() => {
-    selectorTableRef.value && selectorTableRef.value.clearSelection()
+    tableRef.value?.clearSelection()
   })
 }
 
-function onSelectorSelectionChange(selection) {
-  selectorSelectedIds.value = selection.filter((p) => !isInPool(p.id)).map((p) => p.id)
+function onSelectionChange(selection) {
+  selectedIds.value = selection
+    .filter((p) => !isProductExist(p.id))
+    .map((p) => p.id)
 }
 
-async function confirmAddProducts() {
-  if (selectorSelectedIds.value.length === 0) return
-  adding.value = true
+async function handleConfirmAdd() {
+  if (selectedIds.value.length === 0) return
   try {
-    const res = await batchAddCityProducts({
-      cityId: activeCityId.value,
-      productIds: selectorSelectedIds.value
-    })
-    let msg = `成功添加 ${res.added} 个商品`
-    if (res.skipped && res.skipped.length > 0) {
-      msg += `，跳过 ${res.skipped.length} 个已存在的商品`
-    }
-    ElMessage.success(msg)
-    selectorVisible.value = false
-    await loadPool(activeCityId.value)
-  } finally {
-    adding.value = false
+    const res = await batchCityProducts(activeCityId.value, selectedIds.value)
+    const added = res && res.added ? res.added : selectedIds.value.length
+    ElMessage.success(`成功添加 ${added} 个商品`)
+    addDialogVisible.value = false
+    localSort.value = []
+    await loadCityProducts(activeCityId.value)
+    await loadAllCityProductCounts()
+  } catch {}
+}
+
+async function handleResetDefault() {
+  try {
+    await ElMessageBox.confirm(
+      '确定要重置该城市为总部默认吗？所有自定义配置将被清除。',
+      '确认重置',
+      { type: 'warning' }
+    )
+    await resetDefaultCityProducts(activeCityId.value)
+    ElMessage.success('已重置为总部默认')
+    localSort.value = []
+    await loadCityProducts(activeCityId.value)
+    await loadAllCityProductCounts()
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error(e.message || '操作失败')
   }
 }
 
-onMounted(() => {
-  loadCities()
-  loadParentCategories()
-  loadAllProducts()
+async function handleDelete(item) {
+  try {
+    await ElMessageBox.confirm('确定要删除该商品吗？', '确认删除', { type: 'warning' })
+    await deleteCityProduct(item.id)
+    ElMessage.success('删除成功')
+    localSort.value = []
+    await loadCityProducts(activeCityId.value)
+    await loadAllCityProductCounts()
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error(e.message || '删除失败')
+  }
+}
+
+async function moveUp(index) {
+  const list = [...displayProducts.value]
+  if (index <= 0) return
+  if (list[index].isVirtual || list[index - 1].isVirtual) {
+    await convertVirtualToRealIfNeeded(list, index, index - 1)
+    return
+  }
+  ;[list[index - 1], list[index]] = [list[index], list[index - 1]]
+  await saveLocalSort(list)
+}
+
+async function moveDown(index) {
+  const list = [...displayProducts.value]
+  if (index >= list.length - 1) return
+  if (list[index].isVirtual || list[index + 1].isVirtual) {
+    await convertVirtualToRealIfNeeded(list, index, index + 1)
+    return
+  }
+  ;[list[index + 1], list[index]] = [list[index], list[index + 1]]
+  await saveLocalSort(list)
+}
+
+async function convertVirtualToRealIfNeeded(list, idx1, idx2) {
+  try {
+    await ElMessageBox.confirm(
+      '对虚拟商品进行排序将创建自定义配置，确认继续吗？',
+      '创建自定义配置',
+      { type: 'info' }
+    )
+    const virtualIds = new Set()
+    list.forEach((it) => {
+      if (it.isVirtual) virtualIds.add(it.productId)
+    })
+    if (virtualIds.size > 0) {
+      await batchCityProducts(activeCityId.value, [...virtualIds])
+    }
+    localSort.value = []
+    await loadCityProducts(activeCityId.value)
+    await loadAllCityProductCounts()
+    const newList = currentCityProducts.value.map((cp) => ({
+      _key: `r_${cp.id}`,
+      id: cp.id,
+      productId: cp.productId,
+      productName: cp.productName,
+      productIcon: cp.productIcon,
+      productPrice: cp.productPrice,
+      productFullCategoryName: cp.productFullCategoryName,
+      isVirtual: false,
+      sort: cp.sort
+    }))
+    ;[newList[idx1], newList[idx2]] = [newList[idx2], newList[idx1]]
+    await saveLocalSort(newList)
+  } catch {}
+}
+
+async function saveLocalSort(list) {
+  try {
+    const items = list
+      .filter((it) => !it.isVirtual)
+      .map((it, idx) => ({ id: it.id, sort: idx }))
+    await sortCityProducts(items)
+    localSort.value = list
+    await loadCityProducts(activeCityId.value)
+    localSort.value = []
+  } catch {}
+}
+
+onMounted(async () => {
+  await Promise.all([
+    loadCities(),
+    loadAllProducts(),
+    loadCategoryTree()
+  ])
+  await loadAllCityProductCounts()
+  if (cities.value.length > 0) {
+    await selectCity(cities.value[0])
+  }
 })
 </script>
 
 <style scoped>
 .city-product-admin {
   height: 100%;
+  width: 100%;
 }
 
-.city-card,
-.config-card {
+.layout {
+  display: flex;
+  gap: 16px;
+  height: calc(100vh - 120px);
+  min-height: 560px;
+}
+
+.left-panel {
+  width: 300px;
+  flex-shrink: 0;
+  background: #fff;
+  border: 1px solid #e4e7ed;
   border-radius: 8px;
-  height: calc(100vh - 200px);
-  overflow: hidden;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
-.city-card :deep(.el-card__body),
-.config-card :deep(.el-card__body) {
+.right-panel {
   flex: 1;
-  overflow-y: auto;
+  min-width: 0;
+  background: #fff;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.city-card :deep(.el-card__body) {
-  padding: 12px;
-}
-
-.card-header {
+.panel-header {
   display: flex;
   align-items: center;
+  gap: 8px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #f0f0f0;
+  flex-shrink: 0;
+}
+
+.header-icon {
+  font-size: 18px;
+  color: #409eff;
+}
+
+.header-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f1f1f;
+  flex: 1;
+}
+
+.right-header {
   justify-content: space-between;
 }
 
-.header-left {
+.right-header .header-left {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-weight: 600;
-  font-size: 15px;
 }
 
-.header-right {
+.right-header .header-right {
   display: flex;
-  align-items: center;
   gap: 10px;
 }
 
-.help-icon {
-  color: #909399;
-  font-size: 18px;
-  cursor: help;
+.city-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f1f1f;
+}
+
+.virtual-alert {
+  margin: 14px 18px 0;
+  border-radius: 6px;
 }
 
 .city-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
 }
 
 .city-item {
@@ -558,8 +649,9 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 12px 14px;
-  border: 1px solid #e8e8e8;
+  border: 1px solid #ebeef5;
   border-radius: 8px;
+  margin-bottom: 8px;
   cursor: pointer;
   transition: all 0.2s;
   background: #fff;
@@ -573,110 +665,101 @@ onMounted(() => {
 .city-item.active {
   border-color: #409eff;
   background: #ecf5ff;
-  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
+  box-shadow: 0 2px 6px rgba(64, 158, 255, 0.12);
 }
 
 .city-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  min-width: 0;
+  flex: 1;
 }
 
-.city-icon {
-  font-size: 22px;
-  color: #409eff;
+.city-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 
 .city-name {
+  font-size: 14px;
   font-weight: 600;
   color: #1f1f1f;
-  font-size: 14px;
 }
 
-.city-sub {
+.city-province {
   font-size: 12px;
   color: #909399;
-  margin-top: 2px;
 }
 
 .city-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
-.arrow {
+.city-badge :deep(.el-badge__content) {
+  background: #67c23a;
+}
+
+.arrow-icon {
   color: #c0c4cc;
   font-size: 14px;
 }
 
-.config-content {
-  padding: 4px 0;
+.product-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px;
 }
 
-.product-config-item {
+.product-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: 14px;
+  padding: 14px 16px;
+  padding-left: 50px;
   background: #fff;
   border: 1px solid #ebeef5;
   border-radius: 8px;
   margin-bottom: 10px;
-  transition: all 0.2s, transform 0.15s;
+  position: relative;
+  transition: all 0.2s;
 }
 
-.product-config-item:hover {
+.product-item:hover {
   border-color: #409eff;
   box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
 }
 
-.product-config-item.dragging {
-  opacity: 0.5;
-  border-style: dashed;
-  border-color: #409eff;
+.product-item.virtual {
+  background: #fafafa;
+  border-color: #e4e7ed;
 }
 
-.product-config-item.is-official {
-  background: linear-gradient(180deg, #f0f9eb 0%, #ffffff 60%);
-  border-color: #b3e19d;
+.index-badge {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
-.product-config-item.is-custom {
-  background: linear-gradient(180deg, #fdf6ec 0%, #ffffff 60%);
-  border-color: #f5dab1;
-}
-
-.drag-handle {
-  cursor: grab;
-  color: #c0c4cc;
-  font-size: 18px;
-  padding: 4px;
-  flex-shrink: 0;
-}
-
-.drag-handle:active {
-  cursor: grabbing;
-}
-
-.rank-badge {
-  width: 26px;
-  height: 26px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: #fff;
+.index-badge :deep(.el-badge__content) {
+  width: 28px;
+  height: 28px;
+  line-height: 26px;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 12px;
-  flex-shrink: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
 }
 
 .product-icon {
-  font-size: 30px;
-  width: 42px;
-  height: 42px;
+  font-size: 32px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -690,16 +773,32 @@ onMounted(() => {
   min-width: 0;
 }
 
-.product-name {
-  font-weight: 500;
-  color: #1f1f1f;
-  margin-bottom: 4px;
+.product-name-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.product-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f1f1f;
 }
 
 .product-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.product-price {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f56c6c;
+}
+
+.product-category {
   font-size: 12px;
   color: #909399;
 }
@@ -707,22 +806,88 @@ onMounted(() => {
 .product-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   flex-shrink: 0;
 }
 
-.selector-toolbar {
+.product-actions .el-button {
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+.dialog-toolbar {
   display: flex;
+  align-items: center;
   gap: 12px;
   margin-bottom: 14px;
-  align-items: center;
 }
 
-.empty-tip {
-  text-align: center;
+.dialog-tip {
+  flex: 1;
+  text-align: right;
+  font-size: 12px;
   color: #909399;
+}
+
+.table-product-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.table-product-icon {
+  font-size: 28px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fa;
+  border-radius: 6px;
+}
+
+.table-product-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f1f1f;
+  margin-bottom: 2px;
+}
+
+.table-product-category {
+  font-size: 12px;
+  color: #909399;
+}
+
+.table-price {
+  color: #f56c6c;
+  font-weight: 600;
+}
+
+.dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.dialog-footer > span {
   font-size: 13px;
-  padding: 40px 0;
+  color: #606266;
+}
+
+.city-list::-webkit-scrollbar,
+.product-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.city-list::-webkit-scrollbar-thumb,
+.product-list::-webkit-scrollbar-thumb {
+  background: #dcdfe6;
+  border-radius: 3px;
+}
+
+.city-list::-webkit-scrollbar-thumb:hover,
+.product-list::-webkit-scrollbar-thumb:hover {
+  background: #c0c4cc;
 }
 </style>
-

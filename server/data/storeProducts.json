@@ -1,0 +1,5 @@
+[
+  {"id":"sp-1","storeName":"上海浦东旗舰店","cityId":"city-2","productId":"prod-1","price":36.0,"customName":"门店专属红烧肉套餐","status":1,"submitter":"张店长","submitAt":"2026-06-19T08:00:00.000Z","rejectReason":"","createdAt":"2026-06-19T08:00:00.000Z","updatedAt":"2026-06-19T08:00:00.000Z"},
+  {"id":"sp-2","storeName":"杭州西湖店","cityId":"city-5","productId":"prod-4","price":279.0,"customName":"西湖限定碎花连衣裙","status":1,"submitter":"李店长","submitAt":"2026-06-19T09:00:00.000Z","rejectReason":"","createdAt":"2026-06-19T09:00:00.000Z","updatedAt":"2026-06-19T09:00:00.000Z"},
+  {"id":"sp-3","storeName":"广州天河店","cityId":"city-3","productId":"prod-2","price":138.0,"customName":"广州风味牛排套餐","status":2,"submitter":"王店长","submitAt":"2026-06-18T10:00:00.000Z","auditAt":"2026-06-18T12:00:00.000Z","rejectReason":"","createdAt":"2026-06-18T10:00:00.000Z","updatedAt":"2026-06-18T12:00:00.000Z"}
+]

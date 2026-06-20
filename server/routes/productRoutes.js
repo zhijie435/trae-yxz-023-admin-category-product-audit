@@ -49,7 +49,8 @@ function withCategoryInfo(list) {
       ...np,
       categoryName,
       parentCategoryName,
-      fullCategoryName: parentCategoryName ? `${parentCategoryName} / ${categoryName}` : categoryName
+      fullCategoryName: parentCategoryName ? `${parentCategoryName} / ${categoryName}` : categoryName,
+      categoryPath: parentCategoryName ? `${parentCategoryName} / ${categoryName}` : categoryName
     }
   })
 }
@@ -254,6 +255,43 @@ router.post('/batch-toggle-default', (req, res) => {
   })
   save(list)
   ok(res, { count }, '批量操作成功')
+})
+
+router.post('/batch-toggle-status', (req, res) => {
+  const { ids, status } = req.body || {}
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return fail(res, '请选择要操作的商品')
+  }
+  const target = Number(status) === 0 ? 0 : 1
+  const list = load()
+  let count = 0
+  ids.forEach((id) => {
+    const idx = list.findIndex((p) => p.id === id)
+    if (idx !== -1) {
+      list[idx].status = target
+      list[idx].updatedAt = new Date().toISOString()
+      count++
+    }
+  })
+  save(list)
+  ok(res, { count, status: target }, target === 1 ? '批量上架成功' : '批量下架成功')
+})
+
+router.post('/:id/toggle-status', (req, res) => {
+  const { status } = req.body || {}
+  const list = load()
+  const idx = list.findIndex((p) => p.id === req.params.id)
+  if (idx === -1) return fail(res, '商品不存在', 404)
+  let target
+  if (status !== undefined && status !== '') {
+    target = Number(status) === 0 ? 0 : 1
+  } else {
+    target = Number(list[idx].status) === 1 ? 0 : 1
+  }
+  list[idx].status = target
+  list[idx].updatedAt = new Date().toISOString()
+  save(list)
+  ok(res, withCategoryInfo([list[idx]])[0], target === 1 ? '上架成功' : '下架成功')
 })
 
 module.exports = router
