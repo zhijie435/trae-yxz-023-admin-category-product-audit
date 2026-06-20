@@ -15,7 +15,7 @@ const routes = [
     path: '/products',
     name: 'Products',
     component: () => import('@/views/ProductAdmin.vue'),
-    meta: { title: '官方商品库', icon: 'Goods' }
+    meta: { title: '商品管理', icon: 'Goods' }
   },
   {
     path: '/store-product-review',
@@ -27,7 +27,7 @@ const routes = [
     path: '/city-products',
     name: 'CityProducts',
     component: () => import('@/views/CityProductAdmin.vue'),
-    meta: { title: '城市商品配置', icon: 'LocationFilled' }
+    meta: { title: '城市商品配置', icon: 'Location' }
   },
   {
     path: '/categories',

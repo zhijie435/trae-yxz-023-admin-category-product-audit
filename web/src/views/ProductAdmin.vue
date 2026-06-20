@@ -1,42 +1,31 @@
 <template>
-  <div class="product-admin page-container">
-    <div class="page-toolbar">
-      <div class="left">
+  <div class="product-admin">
+    <div class="page-card">
+      <div class="page-header">
+        <div class="page-title">商品管理</div>
+        <el-button type="primary" :icon="Plus" @click="handleAdd">
+          新增商品
+        </el-button>
+      </div>
+
+      <div class="filter-bar">
         <el-input
           v-model="searchKeyword"
           placeholder="搜索商品名称"
           :prefix-icon="Search"
           clearable
-          style="width: 240px"
-          @keyup.enter="loadProducts"
-          @clear="loadProducts"
+          style="width: 220px"
         />
         <el-select
-          v-model="filterParentCategory"
-          placeholder="选择一级分类"
+          v-model="filterCategoryId"
+          placeholder="选择分类"
           clearable
-          style="width: 160px"
-          @change="onParentCategoryChange"
+          style="width: 200px"
         >
           <el-option
-            v-for="cat in parentCategories"
+            v-for="cat in flatCategoryOptions"
             :key="cat.id"
-            :label="`${cat.icon} ${cat.name}`"
-            :value="cat.id"
-          />
-        </el-select>
-        <el-select
-          v-model="filterCategory"
-          placeholder="选择二级分类"
-          clearable
-          style="width: 160px"
-          :disabled="!filterParentCategory"
-          @change="loadProducts"
-        >
-          <el-option
-            v-for="cat in childCategories"
-            :key="cat.id"
-            :label="`${cat.icon} ${cat.name}`"
+            :label="cat.label"
             :value="cat.id"
           />
         </el-select>
@@ -45,8 +34,8 @@
           placeholder="状态"
           clearable
           style="width: 120px"
-          @change="loadProducts"
         >
+          <el-option label="全部" value="" />
           <el-option label="启用" :value="1" />
           <el-option label="禁用" :value="0" />
         </el-select>
@@ -54,147 +43,133 @@
           v-model="filterDefault"
           placeholder="默认商品"
           clearable
-          style="width: 120px"
-          @change="loadProducts"
+          style="width: 140px"
         >
-          <el-option label="是默认" value="true" />
-          <el-option label="非默认" value="false" />
+          <el-option label="全部" value="" />
+          <el-option label="总部默认" :value="1" />
         </el-select>
-        <el-button :icon="Search" @click="loadProducts">搜索</el-button>
+        <el-button type="primary" :icon="Search" @click="loadProducts">查询</el-button>
         <el-button @click="resetFilters">重置</el-button>
       </div>
-      <div class="right">
-        <el-button
-          v-if="selectedIds.length > 0"
-          type="warning"
-          @click="handleBatchToggleDefault(true)"
+
+      <div class="table-wrapper" ref="tableWrapperRef">
+        <el-table
+          ref="tableRef"
+          :data="products"
+          v-loading="loading"
+          stripe
+          border
+          row-key="id"
+          class="product-table"
         >
-          批量设为默认 ({{ selectedIds.length }})
-        </el-button>
-        <el-button
-          v-if="selectedIds.length > 0"
-          type="info"
-          @click="handleBatchToggleDefault(false)"
-        >
-          批量取消默认 ({{ selectedIds.length }})
-        </el-button>
-        <el-button type="primary" :icon="Plus" @click="handleAdd">
-          新增商品
-        </el-button>
+          <el-table-column label="图标" width="80" align="center">
+            <template #default="{ row }">
+              <span class="product-icon">{{ row.icon }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="商品名称" min-width="180">
+            <template #default="{ row }">
+              <span class="product-name">{{ row.name }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="分类路径" width="200">
+            <template #default="{ row }">
+              <span class="category-path">{{ row.categoryPath }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="价格" width="160" align="right">
+            <template #default="{ row }">
+              <div class="price-wrap">
+                <span class="price-current">¥{{ Number(row.price).toFixed(2) }}</span>
+                <span
+                  v-if="row.originalPrice && Number(row.originalPrice) > Number(row.price)"
+                  class="price-original"
+                >
+                  ¥{{ Number(row.originalPrice).toFixed(2) }}
+                </span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="总部默认" width="100" align="center">
+            <template #default="{ row }">
+              <el-tag
+                v-if="row.isDefault === 1"
+                type="warning"
+                effect="dark"
+                size="small"
+                class="default-tag"
+              >
+                默认
+              </el-tag>
+              <el-tag v-else type="info" size="small">--</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="90" align="center">
+            <template #default="{ row }">
+              <el-tag
+                :type="row.status === 1 ? 'success' : 'info'"
+                size="small"
+              >
+                {{ row.status === 1 ? '启用' : '禁用' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="排序" width="90" align="center">
+            <template #default="{ row }">
+              <span>{{ row.sort }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="280" align="center" fixed="right">
+            <template #default="{ row, $index }">
+              <el-button
+                link
+                type="primary"
+                :icon="Edit"
+                @click="handleEdit(row)"
+              >
+                编辑
+              </el-button>
+              <el-button
+                link
+                type="primary"
+                :disabled="$index === 0"
+                @click="moveUp($index)"
+              >
+                上移
+              </el-button>
+              <el-button
+                link
+                type="primary"
+                :disabled="$index === products.length - 1"
+                @click="moveDown($index)"
+              >
+                下移
+              </el-button>
+              <el-button
+                link
+                :type="row.status === 1 ? 'warning' : 'success'"
+                @click="handleToggleStatus(row)"
+              >
+                {{ row.status === 1 ? '禁用' : '启用' }}
+              </el-button>
+              <el-button
+                link
+                type="danger"
+                :icon="Delete"
+                @click="handleDelete(row)"
+              >
+                删除
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
       </div>
     </div>
-
-    <el-card shadow="never" class="table-card">
-      <el-table
-        ref="tableRef"
-        :data="products"
-        v-loading="loading"
-        stripe
-        border
-        @selection-change="onSelectionChange"
-        @sort-change="onSortChange"
-      >
-        <el-table-column type="selection" width="50" align="center" />
-        <el-table-column type="index" label="序号" width="60" align="center" />
-        <el-table-column label="商品" min-width="240">
-          <template #default="{ row }">
-            <div class="product-cell">
-              <span class="product-icon">{{ row.icon }}</span>
-              <div class="product-info">
-                <div class="product-name">{{ row.name }}</div>
-                <div class="product-desc">{{ row.description }}</div>
-              </div>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="fullCategoryName" label="分类" width="160" />
-        <el-table-column label="价格" width="140" align="right">
-          <template #default="{ row }">
-            <div class="price-wrap">
-              <span class="price-current">¥{{ row.price.toFixed(2) }}</span>
-              <span
-                v-if="row.originalPrice && row.originalPrice > row.price"
-                class="price-original"
-              >
-                ¥{{ row.originalPrice.toFixed(2) }}
-              </span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="salesCount" label="销量" width="100" align="center">
-          <template #default="{ row }">
-            {{ formatNumber(row.salesCount) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="标签" width="160">
-          <template #default="{ row }">
-            <el-tag
-              v-for="tag in row.tags"
-              :key="tag"
-              size="small"
-              type="warning"
-              effect="light"
-              style="margin-right: 4px"
-            >
-              {{ tag }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="默认商品" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag
-              v-if="row.isDefault"
-              type="success"
-              size="small"
-              effect="dark"
-            >
-              默认
-            </el-tag>
-            <el-tag v-else type="info" size="small">--</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="80" align="center">
-          <template #default="{ row }">
-            <el-tag
-              :type="row.status === 1 ? 'success' : 'info'"
-              size="small"
-            >
-              {{ row.status === 1 ? '启用' : '禁用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="排序" width="80" align="center" sortable="custom">
-          <template #default="{ row }">
-            {{ row.sort }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="220" align="center" fixed="right">
-          <template #default="{ row }">
-            <el-button
-              link
-              type="primary"
-              @click="handleToggleDefault(row)"
-            >
-              {{ row.isDefault ? '取消默认' : '设为默认' }}
-            </el-button>
-            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-popconfirm
-              :title="`确定要删除「${row.name}」吗？`"
-              @confirm="handleDelete(row)"
-            >
-              <template #reference>
-                <el-button link type="danger">删除</el-button>
-              </template>
-            </el-popconfirm>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
 
     <el-dialog
       v-model="dialogVisible"
       :title="dialogMode === 'add' ? '新增商品' : '编辑商品'"
-      width="600px"
+      width="560px"
       @close="resetForm"
       destroy-on-close
     >
@@ -213,14 +188,19 @@
           />
         </el-form-item>
         <el-form-item label="所属分类" prop="categoryId">
-          <el-cascader
-            v-model="formData.categoryCascader"
-            :options="categoryTree"
-            :props="{ checkStrictly: true, value: 'id', label: 'name', children: 'children' }"
-            placeholder="请选择分类（选二级分类）"
+          <el-select
+            v-model="formData.categoryId"
+            placeholder="请选择分类（仅二级分类）"
             style="width: 100%"
-            @change="onCascaderChange"
-          />
+            filterable
+          >
+            <el-option
+              v-for="cat in flatCategoryOptions"
+              :key="cat.id"
+              :label="cat.label"
+              :value="cat.id"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="图标" prop="icon">
           <el-input
@@ -229,6 +209,26 @@
             maxlength="4"
           />
           <div class="form-tip">支持 emoji 图标，如：🍲 👗 📱</div>
+        </el-form-item>
+        <el-form-item label="售价" prop="price">
+          <el-input-number
+            v-model="formData.price"
+            :min="0"
+            :precision="2"
+            :step="1"
+            style="width: 100%"
+            placeholder="请输入售价"
+          />
+        </el-form-item>
+        <el-form-item label="原价" prop="originalPrice">
+          <el-input-number
+            v-model="formData.originalPrice"
+            :min="0"
+            :precision="2"
+            :step="1"
+            style="width: 100%"
+            placeholder="请输入原价"
+          />
         </el-form-item>
         <el-form-item label="商品描述" prop="description">
           <el-input
@@ -240,83 +240,21 @@
             show-word-limit
           />
         </el-form-item>
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="售价" prop="price">
-              <el-input-number
-                v-model="formData.price"
-                :min="0"
-                :precision="2"
-                :step="10"
-                style="width: 100%"
-                placeholder="请输入售价"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="原价" prop="originalPrice">
-              <el-input-number
-                v-model="formData.originalPrice"
-                :min="0"
-                :precision="2"
-                :step="10"
-                style="width: 100%"
-                placeholder="请输入原价"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="销量">
-              <el-input-number
-                v-model="formData.salesCount"
-                :min="0"
-                :step="100"
-                style="width: 100%"
-                placeholder="默认为0"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="标签">
-              <el-select
-                v-model="formData.tags"
-                multiple
-                filterable
-                allow-create
-                default-first-option
-                placeholder="选择或创建标签"
-                style="width: 100%"
-              >
-                <el-option label="热销" value="热销" />
-                <el-option label="推荐" value="推荐" />
-                <el-option label="新品" value="新品" />
-                <el-option label="限时" value="限时" />
-                <el-option label="折扣" value="折扣" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="状态" prop="status">
-              <el-radio-group v-model="formData.status">
-                <el-radio :value="1">启用</el-radio>
-                <el-radio :value="0">禁用</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="默认商品" prop="isDefault">
-              <el-switch
-                v-model="formData.isDefault"
-                active-text="是（非加盟城市展示）"
-                inactive-text="否"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
+        <el-form-item label="总部默认" prop="isDefault">
+          <el-switch
+            v-model="formData.isDefault"
+            :active-value="1"
+            :inactive-value="0"
+            active-text="是"
+            inactive-text="否"
+          />
+        </el-form-item>
+        <el-form-item label="状态" prop="status">
+          <el-radio-group v-model="formData.status">
+            <el-radio :value="1">启用</el-radio>
+            <el-radio :value="0">禁用</el-radio>
+          </el-radio-group>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -329,102 +267,94 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search } from '@element-plus/icons-vue'
-import { getCategoryTree, getCategories } from '@/api/category'
+import { Plus, Search, Edit, Delete } from '@element-plus/icons-vue'
+import Sortable from 'sortablejs'
+import { getCategoryTree } from '@/api/category'
 import {
   getProducts,
   createProduct,
   updateProduct,
   deleteProduct,
-  batchToggleDefault
+  sortProducts
 } from '@/api/product'
 
-const loading = ref(false)
-const submitLoading = ref(false)
-const dialogVisible = ref(false)
-const dialogMode = ref('add')
 const tableRef = ref(null)
 const formRef = ref(null)
+const tableWrapperRef = ref(null)
+const dialogVisible = ref(false)
+const submitLoading = ref(false)
+const loading = ref(false)
+const dialogMode = ref('add')
 
 const searchKeyword = ref('')
-const filterParentCategory = ref('')
-const filterCategory = ref('')
+const filterCategoryId = ref('')
 const filterStatus = ref('')
 const filterDefault = ref('')
-const selectedIds = ref([])
 
 const products = ref([])
-const parentCategories = ref([])
-const childCategories = ref([])
 const categoryTree = ref([])
 
-const dialogData = reactive({
-  id: ''
-})
-
 const formData = reactive({
+  id: '',
   name: '',
   categoryId: '',
-  categoryCascader: [],
   icon: '📦',
-  description: '',
   price: 0,
   originalPrice: 0,
-  salesCount: 0,
-  status: 1,
-  isDefault: true,
-  tags: []
+  description: '',
+  isDefault: 0,
+  status: 1
 })
 
 const formRules = {
   name: [
     { required: true, message: '请输入商品名称', trigger: 'blur' },
-    { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
+    { min: 1, max: 50, message: '长度在 1 到 50 个字符', trigger: 'blur' }
   ],
   categoryId: [
-    { required: true, message: '请选择商品分类', trigger: 'change' }
+    { required: true, message: '请选择所属分类', trigger: 'change' }
   ],
-  icon: [{ required: true, message: '请输入图标', trigger: 'blur' }],
+  icon: [
+    { required: true, message: '请输入图标', trigger: 'blur' }
+  ],
   price: [
     { required: true, message: '请输入售价', trigger: 'blur' },
-    {
-      type: 'number',
-      min: 0,
-      message: '售价必须大于等于0',
-      trigger: 'blur'
-    }
+    { type: 'number', min: 0, message: '售价必须大于等于 0', trigger: 'blur' }
   ]
 }
 
-function formatNumber(num) {
-  if (num >= 10000) {
-    return (num / 10000).toFixed(1) + 'w'
+const flatCategoryOptions = computed(() => {
+  const options = []
+  categoryTree.value.forEach((parent) => {
+    if (parent.children && parent.children.length > 0) {
+      parent.children.forEach((child) => {
+        options.push({
+          id: child.id,
+          label: `${parent.icon} ${parent.name} / ${child.icon} ${child.name}`
+        })
+      })
+    }
+  })
+  return options
+})
+
+function getCategoryPath(categoryId) {
+  for (const parent of categoryTree.value) {
+    if (parent.children) {
+      for (const child of parent.children) {
+        if (child.id === categoryId) {
+          return `${parent.name} / ${child.name}`
+        }
+      }
+    }
   }
-  return num.toLocaleString()
+  return ''
 }
 
 async function loadCategoryTree() {
   categoryTree.value = await getCategoryTree()
-}
-
-async function loadParentCategories() {
-  parentCategories.value = await getCategories({ parentId: 'null' })
-}
-
-async function loadChildCategories() {
-  if (!filterParentCategory.value) {
-    childCategories.value = []
-    return
-  }
-  childCategories.value = await getCategories({ parentId: filterParentCategory.value })
-}
-
-function onParentCategoryChange() {
-  filterCategory.value = ''
-  loadChildCategories()
-  loadProducts()
 }
 
 async function loadProducts() {
@@ -432,35 +362,28 @@ async function loadProducts() {
   try {
     const params = {}
     if (searchKeyword.value) params.keyword = searchKeyword.value
-    if (filterCategory.value) params.categoryId = filterCategory.value
-    else if (filterParentCategory.value) params.parentCategoryId = filterParentCategory.value
-    if (filterStatus !== '') params.status = filterStatus.value
-    if (filterDefault !== '') params.isDefault = filterDefault.value
-    products.value = await getProducts(params)
+    if (filterCategoryId.value) params.categoryId = filterCategoryId.value
+    if (filterStatus !== '' && filterStatus.value !== null) params.status = filterStatus.value
+    if (filterDefault.value === 1) params.isDefault = 1
+    const data = await getProducts(params)
+    products.value = data.map((item) => ({
+      ...item,
+      categoryPath: item.categoryPath || getCategoryPath(item.categoryId)
+    }))
   } finally {
     loading.value = false
+    nextTick(() => {
+      initSortable()
+    })
   }
 }
 
 function resetFilters() {
   searchKeyword.value = ''
-  filterParentCategory.value = ''
-  filterCategory.value = ''
+  filterCategoryId.value = ''
   filterStatus.value = ''
   filterDefault.value = ''
   loadProducts()
-}
-
-function onSelectionChange(selection) {
-  selectedIds.value = selection.map((item) => item.id)
-}
-
-function onSortChange({ prop, order }) {
-  if (prop === 'sort' && order) {
-    products.value.sort((a, b) => {
-      return order === 'ascending' ? a.sort - b.sort : b.sort - a.sort
-    })
-  }
 }
 
 function handleAdd() {
@@ -470,68 +393,47 @@ function handleAdd() {
 
 function handleEdit(row) {
   dialogMode.value = 'edit'
-  dialogData.id = row.id
+  formData.id = row.id
   formData.name = row.name
   formData.categoryId = row.categoryId
   formData.icon = row.icon
-  formData.description = row.description
-  formData.price = row.price
-  formData.originalPrice = row.originalPrice
-  formData.salesCount = row.salesCount
-  formData.status = row.status
+  formData.price = Number(row.price)
+  formData.originalPrice = Number(row.originalPrice)
+  formData.description = row.description || ''
   formData.isDefault = row.isDefault
-  formData.tags = [...(row.tags || [])]
-  if (row.parentCategoryName) {
-    formData.categoryCascader = [findParentId(row.categoryId), row.categoryId]
-  } else {
-    formData.categoryCascader = [row.categoryId]
-  }
+  formData.status = row.status
   dialogVisible.value = true
-}
-
-function findParentId(childId) {
-  for (const parent of categoryTree.value) {
-    if (parent.children) {
-      for (const child of parent.children) {
-        if (child.id === childId) return parent.id
-      }
-    }
-  }
-  return ''
-}
-
-function onCascaderChange(val) {
-  if (val && val.length > 0) {
-    formData.categoryId = val[val.length - 1]
-  } else {
-    formData.categoryId = ''
-  }
 }
 
 async function handleToggleDefault(row) {
   try {
-    await updateProduct(row.id, { isDefault: !row.isDefault })
-    ElMessage.success(row.isDefault ? '已取消默认' : '已设为默认')
+    const newVal = row.isDefault === 1 ? 0 : 1
+    await updateProduct(row.id, { isDefault: newVal })
+    ElMessage.success(newVal === 1 ? '已设为默认' : '已取消默认')
     loadProducts()
   } catch {}
 }
 
-async function handleBatchToggleDefault(isDefault) {
+async function handleToggleStatus(row) {
+  const newStatus = row.status === 1 ? 0 : 1
+  const action = newStatus === 1 ? '启用' : '禁用'
   try {
-    const action = isDefault ? '设为默认商品' : '取消默认商品'
-    await ElMessageBox.confirm(
-      `确定要将选中的 ${selectedIds.value.length} 个商品${action}吗？`,
-      '提示',
-      { type: 'warning' }
-    )
-    await batchToggleDefault({ ids: selectedIds.value, isDefault })
-    ElMessage.success('批量操作成功')
+    await ElMessageBox.confirm(`确定要${action}该商品吗？`, '提示', {
+      type: 'warning'
+    })
+    await updateProduct(row.id, { status: newStatus })
+    ElMessage.success(`${action}成功`)
     loadProducts()
   } catch {}
 }
 
 async function handleDelete(row) {
   try {
+    await ElMessageBox.confirm(`确定要删除「${row.name}」吗？`, '提示', {
+      type: 'warning',
+      confirmButtonText: '确定',
+      cancelButtonText: '取消'
+    })
     await deleteProduct(row.id)
     ElMessage.success('删除成功')
     loadProducts()
@@ -549,27 +451,23 @@ async function handleSubmit() {
           name: formData.name,
           categoryId: formData.categoryId,
           icon: formData.icon,
-          description: formData.description,
           price: formData.price,
           originalPrice: formData.originalPrice,
-          salesCount: formData.salesCount,
-          status: formData.status,
+          description: formData.description,
           isDefault: formData.isDefault,
-          tags: formData.tags
+          status: formData.status
         })
         ElMessage.success('创建成功')
       } else {
-        await updateProduct(dialogData.id, {
+        await updateProduct(formData.id, {
           name: formData.name,
           categoryId: formData.categoryId,
           icon: formData.icon,
-          description: formData.description,
           price: formData.price,
           originalPrice: formData.originalPrice,
-          salesCount: formData.salesCount,
-          status: formData.status,
+          description: formData.description,
           isDefault: formData.isDefault,
-          tags: formData.tags
+          status: formData.status
         })
         ElMessage.success('更新成功')
       }
@@ -582,25 +480,80 @@ async function handleSubmit() {
 }
 
 function resetForm() {
-  dialogData.id = ''
+  formData.id = ''
   formData.name = ''
   formData.categoryId = ''
-  formData.categoryCascader = []
   formData.icon = '📦'
-  formData.description = ''
   formData.price = 0
   formData.originalPrice = 0
-  formData.salesCount = 0
+  formData.description = ''
+  formData.isDefault = 0
   formData.status = 1
-  formData.isDefault = true
-  formData.tags = []
   formRef.value?.resetFields()
 }
 
+async function moveUp(index) {
+  if (index <= 0) return
+  const items = [...products.value]
+  ;[items[index - 1], items[index]] = [items[index], items[index - 1]]
+  products.value = items
+  await saveSort()
+}
+
+async function moveDown(index) {
+  if (index >= products.value.length - 1) return
+  const items = [...products.value]
+  ;[items[index + 1], items[index]] = [items[index], items[index + 1]]
+  products.value = items
+  await saveSort()
+}
+
+async function saveSort() {
+  try {
+    const sortItems = products.value.map((item, index) => ({
+      id: item.id,
+      sort: index + 1
+    }))
+    await sortProducts(sortItems)
+    loadProducts()
+  } catch (err) {
+    loadProducts()
+  }
+}
+
+function initSortable() {
+  if (!tableWrapperRef.value) return
+  const table = tableWrapperRef.value.querySelector('.el-table__body-wrapper tbody')
+  if (!table) return
+  Sortable.create(table, {
+    handle: 'tr',
+    ghostClass: 'sortable-ghost',
+    chosenClass: 'sortable-chosen',
+    animation: 150,
+    onEnd: async (evt) => {
+      if (evt.oldIndex === evt.newIndex) return
+      const items = [...products.value]
+      const [moved] = items.splice(evt.oldIndex, 1)
+      items.splice(evt.newIndex, 0, moved)
+      products.value = items
+      try {
+        const sortItems = products.value.map((item, index) => ({
+          id: item.id,
+          sort: index + 1
+        }))
+        await sortProducts(sortItems)
+        loadProducts()
+      } catch (err) {
+        loadProducts()
+      }
+    }
+  })
+}
+
 onMounted(() => {
-  loadCategoryTree()
-  loadParentCategories()
-  loadProducts()
+  loadCategoryTree().then(() => {
+    loadProducts()
+  })
 })
 </script>
 
@@ -609,46 +562,57 @@ onMounted(() => {
   height: 100%;
 }
 
-.table-card {
+.page-card {
+  background: #fff;
   border-radius: 8px;
+  padding: 20px;
 }
 
-.product-cell {
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f1f1f;
+}
+
+.filter-bar {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: #fafafa;
+  border-radius: 6px;
+  flex-wrap: wrap;
+}
+
+.table-wrapper {
+  position: relative;
+}
+
+.product-table {
+  width: 100%;
 }
 
 .product-icon {
-  font-size: 36px;
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f5f7fa;
-  border-radius: 8px;
-  flex-shrink: 0;
-}
-
-.product-info {
-  min-width: 0;
+  font-size: 28px;
 }
 
 .product-name {
+  font-size: 14px;
   font-weight: 500;
   color: #1f1f1f;
-  margin-bottom: 4px;
 }
 
-.product-desc {
-  font-size: 12px;
-  color: #909399;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
+.category-path {
+  font-size: 13px;
+  color: #606266;
 }
 
 .price-wrap {
@@ -670,9 +634,23 @@ onMounted(() => {
   font-size: 12px;
 }
 
+.default-tag {
+  background: linear-gradient(135deg, #f7ba2a, #e6a23c);
+  border: none;
+}
+
 .form-tip {
   font-size: 12px;
   color: #909399;
   margin-top: 4px;
+}
+
+:deep(.sortable-ghost) {
+  opacity: 0.4;
+  background: #ecf5ff !important;
+}
+
+:deep(.sortable-chosen) {
+  background: #ecf5ff !important;
 }
 </style>

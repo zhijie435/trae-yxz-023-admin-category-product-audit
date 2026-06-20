@@ -94,7 +94,7 @@ router.get('/defaults', (req, res) => {
   if (cityId) {
     const cities = readJson(CITY_FILE)
     const city = cities.find((c) => c.id === cityId)
-    if (city && !isCityFranchised(city)) {
+    if (city) {
       const cityProducts = readJson(CITY_PROD_FILE)
       const cityProdIds = cityProducts
         .filter((cp) => cp.cityId === cityId && Number(cp.status) === 1)
