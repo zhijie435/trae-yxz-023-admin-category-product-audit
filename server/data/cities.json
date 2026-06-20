@@ -1,0 +1,12 @@
+[
+  {"id":"city-1","name":"北京","code":"BJ","province":"北京市","isFranchise":true,"sort":0,"status":1,"createdAt":"2026-06-20T08:00:00.000Z","updatedAt":"2026-06-20T08:00:00.000Z"},
+  {"id":"city-2","name":"上海","code":"SH","province":"上海市","isFranchise":true,"sort":1,"status":1,"createdAt":"2026-06-20T08:00:00.000Z","updatedAt":"2026-06-20T08:00:00.000Z"},
+  {"id":"city-3","name":"广州","code":"GZ","province":"广东省","isFranchise":true,"sort":2,"status":1,"createdAt":"2026-06-20T08:00:00.000Z","updatedAt":"2026-06-20T08:00:00.000Z"},
+  {"id":"city-4","name":"深圳","code":"SZ","province":"广东省","isFranchise":true,"sort":3,"status":1,"createdAt":"2026-06-20T08:00:00.000Z","updatedAt":"2026-06-20T08:00:00.000Z"},
+  {"id":"city-5","name":"杭州","code":"HZ","province":"浙江省","isFranchise":false,"sort":4,"status":1,"createdAt":"2026-06-20T08:00:00.000Z","updatedAt":"2026-06-20T08:00:00.000Z"},
+  {"id":"city-6","name":"成都","code":"CD","province":"四川省","isFranchise":false,"sort":5,"status":1,"createdAt":"2026-06-20T08:00:00.000Z","updatedAt":"2026-06-20T08:00:00.000Z"},
+  {"id":"city-7","name":"武汉","code":"WH","province":"湖北省","isFranchise":false,"sort":6,"status":1,"createdAt":"2026-06-20T08:00:00.000Z","updatedAt":"2026-06-20T08:00:00.000Z"},
+  {"id":"city-8","name":"西安","code":"XA","province":"陕西省","isFranchise":false,"sort":7,"status":1,"createdAt":"2026-06-20T08:00:00.000Z","updatedAt":"2026-06-20T08:00:00.000Z"},
+  {"id":"city-9","name":"南京","code":"NJ","province":"江苏省","isFranchise":false,"sort":8,"status":1,"createdAt":"2026-06-20T08:00:00.000Z","updatedAt":"2026-06-20T08:00:00.000Z"},
+  {"id":"city-10","name":"重庆","code":"CQ","province":"重庆市","isFranchise":false,"sort":9,"status":1,"createdAt":"2026-06-20T08:00:00.000Z","updatedAt":"2026-06-20T08:00:00.000Z"}
+]

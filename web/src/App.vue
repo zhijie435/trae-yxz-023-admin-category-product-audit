@@ -17,6 +17,14 @@
           <el-icon><HomeFilled /></el-icon>
           <span>首页预览</span>
         </el-menu-item>
+        <el-menu-item index="/products">
+          <el-icon><Goods /></el-icon>
+          <span>官方商品库</span>
+        </el-menu-item>
+        <el-menu-item index="/city-products">
+          <el-icon><LocationFilled /></el-icon>
+          <span>城市商品配置</span>
+        </el-menu-item>
         <el-menu-item index="/categories">
           <el-icon><Files /></el-icon>
           <span>分类管理</span>
@@ -41,7 +49,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { HomeFilled, Files, Star } from '@element-plus/icons-vue'
+import { HomeFilled, Files, Star, Goods, LocationFilled } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const activeMenu = computed(() => route.path)
