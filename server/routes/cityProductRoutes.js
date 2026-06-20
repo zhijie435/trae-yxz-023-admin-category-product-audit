@@ -140,6 +140,20 @@ router.get('/non-franchise-configs', (req, res) => {
   })
 })
 
+router.get('/cities', (req, res) => {
+  const { status, isFranchise } = req.query
+  let cities = readJson(CITY_FILE)
+  if (status !== undefined && status !== '') {
+    cities = cities.filter((c) => Number(c.status) === Number(status))
+  }
+  if (isFranchise !== undefined && isFranchise !== '') {
+    const want = isFranchise === 'true' || isFranchise === '1'
+    cities = cities.filter((c) => isCityFranchised(c) === want)
+  }
+  cities = [...cities].sort((a, b) => (a.sort || 0) - (b.sort || 0))
+  ok(res, cities.map((c) => ({ ...c, isFranchise: isCityFranchised(c) })))
+})
+
 router.get('/:id', (req, res) => {
   const list = load()
   const item = list.find((cp) => cp.id === req.params.id)

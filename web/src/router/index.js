@@ -18,6 +18,12 @@ const routes = [
     meta: { title: '官方商品库', icon: 'Goods' }
   },
   {
+    path: '/store-product-review',
+    name: 'StoreProductReview',
+    component: () => import('@/views/StoreProductReview.vue'),
+    meta: { title: '门店商品审核', icon: 'Checked' }
+  },
+  {
     path: '/city-products',
     name: 'CityProducts',
     component: () => import('@/views/CityProductAdmin.vue'),

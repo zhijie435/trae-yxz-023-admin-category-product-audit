@@ -21,6 +21,10 @@
           <el-icon><Goods /></el-icon>
           <span>官方商品库</span>
         </el-menu-item>
+        <el-menu-item index="/store-product-review">
+          <el-icon><Checked /></el-icon>
+          <span>门店商品审核</span>
+        </el-menu-item>
         <el-menu-item index="/city-products">
           <el-icon><LocationFilled /></el-icon>
           <span>城市商品配置</span>
@@ -49,7 +53,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { HomeFilled, Files, Star, Goods, LocationFilled } from '@element-plus/icons-vue'
+import { HomeFilled, Files, Star, Goods, LocationFilled, Checked } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const activeMenu = computed(() => route.path)

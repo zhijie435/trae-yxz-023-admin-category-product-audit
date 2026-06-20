@@ -5,6 +5,7 @@ const categoryRoutes = require('./routes/categoryRoutes')
 const recommendRoutes = require('./routes/recommendRoutes')
 const productRoutes = require('./routes/productRoutes')
 const cityProductRoutes = require('./routes/cityProductRoutes')
+const storeProductRoutes = require('./routes/storeProductRoutes')
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -21,6 +22,7 @@ app.use('/api/categories', categoryRoutes)
 app.use('/api/recommends', recommendRoutes)
 app.use('/api/products', productRoutes)
 app.use('/api/city-products', cityProductRoutes)
+app.use('/api/store-products', storeProductRoutes)
 
 app.use((req, res) => {
   res.status(404).json({ code: 404, message: '接口不存在', data: null })

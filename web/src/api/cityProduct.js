@@ -1,5 +1,13 @@
 import request from '@/utils/request'
 
+export const getCities = (params) => {
+  return request({
+    url: '/city-products/cities',
+    method: 'get',
+    params
+  })
+}
+
 export const getCityProducts = (params) => {
   return request({
     url: '/city-products',
