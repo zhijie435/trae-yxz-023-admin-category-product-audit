@@ -1,0 +1,58 @@
+[
+  {
+    "id": "rec-1",
+    "title": "限时抢购",
+    "subtitle": "每日10点开抢",
+    "icon": "⚡",
+    "color": "#FF4D4F",
+    "bgColor": "#FFF1F0",
+    "categoryId": "cat-1",
+    "link": "/flash-sale",
+    "sort": 0,
+    "status": 1,
+    "createdAt": "2026-06-20T08:00:00.000Z",
+    "updatedAt": "2026-06-20T08:00:00.000Z"
+  },
+  {
+    "id": "rec-2",
+    "title": "品牌馆",
+    "subtitle": "大牌低至5折",
+    "icon": "👑",
+    "color": "#FAAD14",
+    "bgColor": "#FFFBE6",
+    "categoryId": "cat-2",
+    "link": "/brand",
+    "sort": 1,
+    "status": 1,
+    "createdAt": "2026-06-20T08:00:00.000Z",
+    "updatedAt": "2026-06-20T08:00:00.000Z"
+  },
+  {
+    "id": "rec-3",
+    "title": "新品首发",
+    "subtitle": "潮流尖货抢先购",
+    "icon": "🆕",
+    "color": "#1890FF",
+    "bgColor": "#E6F7FF",
+    "categoryId": "cat-4",
+    "link": "/new-arrivals",
+    "sort": 2,
+    "status": 1,
+    "createdAt": "2026-06-20T08:00:00.000Z",
+    "updatedAt": "2026-06-20T08:00:00.000Z"
+  },
+  {
+    "id": "rec-4",
+    "title": "会员专享",
+    "subtitle": "尊享额外95折",
+    "icon": "💎",
+    "color": "#722ED1",
+    "bgColor": "#F9F0FF",
+    "categoryId": null,
+    "link": "/vip",
+    "sort": 3,
+    "status": 1,
+    "createdAt": "2026-06-20T08:00:00.000Z",
+    "updatedAt": "2026-06-20T08:00:00.000Z"
+  }
+]
