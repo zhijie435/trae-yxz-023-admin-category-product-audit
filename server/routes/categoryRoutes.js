@@ -22,9 +22,10 @@ function save(list) {
 
 function buildTree(list) {
   const sorted = [...list].sort((a, b) => (a.sort || 0) - (b.sort || 0))
-  const level1 = sorted.filter((c) => c.level === 1 || (!c.parentId))
+  const activeList = sorted.filter((c) => Number(c.status) === 1)
+  const level1 = activeList.filter((c) => c.level === 1 || (!c.parentId))
   return level1.map((parent) => {
-    const children = sorted.filter((c) => c.parentId === parent.id)
+    const children = activeList.filter((c) => c.parentId === parent.id)
     return { ...parent, children }
   })
 }
@@ -66,13 +67,14 @@ router.get('/:id', (req, res) => {
 })
 
 router.post('/', (req, res) => {
-  const { name, parentId, level, icon, description, status } = req.body || {}
+  const { name, parentId, icon, description, status } = req.body || {}
   if (!name || !String(name).trim()) {
     return fail(res, '分类名称不能为空')
   }
   const list = load()
-  const lvl = Number(level) === 2 ? 2 : 1
-  if (lvl === 2) {
+  const isLevel1 = parentId === null || parentId === undefined || parentId === 'null'
+  const lvl = isLevel1 ? 1 : 2
+  if (!isLevel1) {
     if (!parentId) return fail(res, '二级分类必须指定一级分类')
     const parent = list.find((c) => c.id === parentId)
     if (!parent) return fail(res, '所选一级分类不存在')
@@ -81,12 +83,12 @@ router.post('/', (req, res) => {
     }
   }
   const now = new Date().toISOString()
-  const siblings = list.filter((c) => (lvl === 1 ? !c.parentId : c.parentId === parentId))
+  const siblings = list.filter((c) => (isLevel1 ? !c.parentId : c.parentId === parentId))
   const maxSort = siblings.reduce((m, c) => Math.max(m, c.sort || 0), -1)
   const item = {
     id: genId('cat'),
     name: String(name).trim(),
-    parentId: lvl === 1 ? null : parentId,
+    parentId: isLevel1 ? null : parentId,
     level: lvl,
     icon: icon || '',
     description: description || '',
