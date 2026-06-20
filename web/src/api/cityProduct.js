@@ -35,3 +35,15 @@ export const resetDefaultCityProducts = (cityId) => {
 export const sortCityProducts = (items) => {
   return request({ url: '/city-products/sort', method: 'post', data: { items } })
 }
+
+export const getCityProductPool = (cityId) => {
+  return request({ url: `/city-products/pool/${cityId}`, method: 'get' })
+}
+
+export const sortCityProductPool = (cityId, items) => {
+  return request({ url: `/city-products/pool/${cityId}/sort`, method: 'post', data: { items } })
+}
+
+export const removeProductFromPool = (cityId, productId) => {
+  return request({ url: `/city-products/pool/${cityId}/remove-product`, method: 'post', data: { productId } })
+}

@@ -42,16 +42,16 @@
             <div class="header-left">
               <el-icon class="header-icon"><Goods /></el-icon>
               <span class="city-title">{{ activeCity.name }} - 商品配置</span>
-              <el-tag v-if="isVirtualMode" type="info" size="small" effect="light">
-                总部默认模式
+              <el-tag type="info" size="small" effect="light">
+                总部默认 + 城市定制
               </el-tag>
             </div>
             <div class="header-right">
-              <el-tooltip content="清除该城市所有自定义配置，恢复使用总部默认商品" placement="top">
+              <el-tooltip content="清除该城市所有自定义配置，恢复使用总部默认商品排序" placement="top">
                 <el-button
                   type="warning"
                   :icon="RefreshLeft"
-                  :disabled="isVirtualMode"
+                  :disabled="customProductCount === 0"
                   @click="handleResetDefault"
                 >
                   重置为总部默认
@@ -68,12 +68,11 @@
           </div>
 
           <el-alert
-            v-if="isVirtualMode"
             type="info"
             :closable="false"
             show-icon
             class="virtual-alert"
-            title="当前显示的是总部默认虚拟商品，添加自定义商品后将不再显示默认商品"
+            title="默认商品始终显示，可通过排序调整商品展示顺序；新增商品会被加入该城市商品池"
           />
 
           <div class="product-list">
@@ -81,15 +80,21 @@
               v-for="(item, index) in displayProducts"
               :key="item._key"
               class="product-item"
-              :class="{ virtual: item.isVirtual }"
+              :class="{ virtual: item.isOfficialDefault && !item.hasCityConfig }"
             >
               <el-badge :value="index + 1" class="index-badge" />
               <span class="product-icon">{{ item.productIcon }}</span>
               <div class="product-main">
                 <div class="product-name-row">
                   <span class="product-name">{{ item.productName }}</span>
-                  <el-tag v-if="item.isVirtual" type="info" size="small" effect="plain">
-                    总部默认（虚拟）
+                  <el-tag v-if="item.isOfficialDefault && !item.hasCityConfig" type="info" size="small" effect="plain">
+                    总部默认
+                  </el-tag>
+                  <el-tag v-else-if="item.isOfficialDefault && item.hasCityConfig" type="success" size="small" effect="plain">
+                    总部默认（已排序）
+                  </el-tag>
+                  <el-tag v-else type="warning" size="small" effect="plain">
+                    城市定制
                   </el-tag>
                 </div>
                 <div class="product-meta">
@@ -117,15 +122,15 @@
                   <span>下移</span>
                 </el-button>
                 <el-button
-                  v-if="!item.isVirtual"
+                  v-if="!item.isOfficialDefault || item.hasCityConfig"
                   link
                   type="danger"
                   @click="handleDelete(item)"
                 >
                   <el-icon><Delete /></el-icon>
-                  <span>删除</span>
+                  <span>{{ item.isOfficialDefault ? '恢复默认' : '删除' }}</span>
                 </el-button>
-                <el-tooltip v-else content="虚拟商品不可删除" placement="top">
+                <el-tooltip v-else content="纯总部默认商品不可删除，可调整排序" placement="top">
                   <el-button link type="danger" disabled>
                     <el-icon><Delete /></el-icon>
                     <span>删除</span>
@@ -252,7 +257,10 @@ import {
   batchCityProducts,
   resetDefaultCityProducts,
   deleteCityProduct,
-  sortCityProducts
+  sortCityProducts,
+  getCityProductPool,
+  sortCityProductPool,
+  removeProductFromPool
 } from '@/api/cityProduct'
 import { getProducts } from '@/api/product'
 import { getCategoryTree } from '@/api/category'
@@ -269,7 +277,7 @@ const filterCategoryId = ref('')
 const selectedIds = ref([])
 const tableRef = ref(null)
 
-const defaultProducts = ref([])
+const currentPool = ref({ pool: [], total: 0, officialDefaultCount: 0, cityAddedCount: 0 })
 const currentCityProducts = ref([])
 const localSort = ref([])
 
@@ -277,37 +285,25 @@ const activeCity = computed(() => {
   return cities.value.find((c) => c.id === activeCityId.value) || null
 })
 
-const isVirtualMode = computed(() => {
-  return currentCityProducts.value.length === 0
+const customProductCount = computed(() => {
+  return currentCityProducts.value.length
 })
 
 const displayProducts = computed(() => {
   if (localSort.value.length > 0) {
     return localSort.value
   }
-  if (isVirtualMode.value) {
-    return defaultProducts.value.map((p, idx) => ({
-      _key: `v_${p.id}`,
-      id: '',
-      productId: p.id,
-      productName: p.name,
-      productIcon: p.icon,
-      productPrice: p.price,
-      productFullCategoryName: p.fullCategoryName,
-      isVirtual: true,
-      sort: idx
-    }))
-  }
-  return currentCityProducts.value.map((cp) => ({
-    _key: `r_${cp.id}`,
-    id: cp.id,
-    productId: cp.productId,
-    productName: cp.productName,
-    productIcon: cp.productIcon,
-    productPrice: cp.productPrice,
-    productFullCategoryName: cp.productFullCategoryName,
-    isVirtual: false,
-    sort: cp.sort
+  return currentPool.value.pool.map((p, idx) => ({
+    _key: `p_${p.productId}`,
+    id: p.cityProductId || '',
+    productId: p.productId,
+    productName: p.productName,
+    productIcon: p.productIcon,
+    productPrice: p.productPrice,
+    productFullCategoryName: p.productFullCategoryName,
+    isOfficialDefault: p.isOfficialDefault,
+    hasCityConfig: p.hasCityConfig,
+    sort: p.displayIndex ?? idx
   }))
 })
 
@@ -317,11 +313,7 @@ const topLevelCategories = computed(() => {
 
 const existProductIds = computed(() => {
   const ids = new Set()
-  if (isVirtualMode.value) {
-    defaultProducts.value.forEach((p) => ids.add(p.id))
-  } else {
-    currentCityProducts.value.forEach((cp) => ids.add(cp.productId))
-  }
+  currentPool.value.pool.forEach((p) => ids.add(p.productId))
   return ids
 })
 
@@ -389,7 +381,6 @@ async function loadCities() {
 
 async function loadAllProducts() {
   allProducts.value = await getProducts({ status: 1 })
-  defaultProducts.value = allProducts.value.filter((p) => p.isDefault)
 }
 
 async function loadCategoryTree() {
@@ -410,10 +401,15 @@ async function loadAllCityProductCounts() {
 
 async function loadCityProducts(cityId) {
   try {
-    const list = await getCityProductsByCity(cityId)
+    const [list, pool] = await Promise.all([
+      getCityProductsByCity(cityId),
+      getCityProductPool(cityId)
+    ])
     currentCityProducts.value = list || []
+    currentPool.value = pool || { pool: [], total: 0, officialDefaultCount: 0, cityAddedCount: 0 }
   } catch {
     currentCityProducts.value = []
+    currentPool.value = { pool: [], total: 0, officialDefaultCount: 0, cityAddedCount: 0 }
   }
 }
 
@@ -465,79 +461,47 @@ async function handleResetDefault() {
 
 async function handleDelete(item) {
   try {
-    await ElMessageBox.confirm('确定要删除该商品吗？', '确认删除', { type: 'warning' })
-    await deleteCityProduct(item.id)
-    ElMessage.success('删除成功')
+    const msg = item.isOfficialDefault && item.hasCityConfig
+      ? '确定要清除该商品的城市排序配置，恢复为总部默认吗？'
+      : '确定要删除该商品吗？'
+    const title = item.isOfficialDefault ? '确认恢复默认' : '确认删除'
+    await ElMessageBox.confirm(msg, title, { type: 'warning' })
+    if (item.isOfficialDefault) {
+      await removeProductFromPool(activeCityId.value, item.productId)
+      ElMessage.success('已恢复为总部默认')
+    } else {
+      await deleteCityProduct(item.id)
+      ElMessage.success('删除成功')
+    }
     localSort.value = []
     await loadCityProducts(activeCityId.value)
     await loadAllCityProductCounts()
   } catch (e) {
-    if (e !== 'cancel') ElMessage.error(e.message || '删除失败')
+    if (e !== 'cancel') ElMessage.error(e.message || '操作失败')
   }
 }
 
 async function moveUp(index) {
   const list = [...displayProducts.value]
   if (index <= 0) return
-  if (list[index].isVirtual || list[index - 1].isVirtual) {
-    await convertVirtualToRealIfNeeded(list, index, index - 1)
-    return
-  }
   ;[list[index - 1], list[index]] = [list[index], list[index - 1]]
-  await saveLocalSort(list)
+  await savePoolSort(list)
 }
 
 async function moveDown(index) {
   const list = [...displayProducts.value]
   if (index >= list.length - 1) return
-  if (list[index].isVirtual || list[index + 1].isVirtual) {
-    await convertVirtualToRealIfNeeded(list, index, index + 1)
-    return
-  }
   ;[list[index + 1], list[index]] = [list[index], list[index + 1]]
-  await saveLocalSort(list)
+  await savePoolSort(list)
 }
 
-async function convertVirtualToRealIfNeeded(list, idx1, idx2) {
+async function savePoolSort(list) {
   try {
-    await ElMessageBox.confirm(
-      '对虚拟商品进行排序将创建自定义配置，确认继续吗？',
-      '创建自定义配置',
-      { type: 'info' }
-    )
-    const virtualIds = new Set()
-    list.forEach((it) => {
-      if (it.isVirtual) virtualIds.add(it.productId)
-    })
-    if (virtualIds.size > 0) {
-      await batchCityProducts(activeCityId.value, [...virtualIds])
-    }
-    localSort.value = []
-    await loadCityProducts(activeCityId.value)
-    await loadAllCityProductCounts()
-    const newList = currentCityProducts.value.map((cp) => ({
-      _key: `r_${cp.id}`,
-      id: cp.id,
-      productId: cp.productId,
-      productName: cp.productName,
-      productIcon: cp.productIcon,
-      productPrice: cp.productPrice,
-      productFullCategoryName: cp.productFullCategoryName,
-      isVirtual: false,
-      sort: cp.sort
+    const items = list.map((it, idx) => ({
+      productId: it.productId, sort: idx
     }))
-    ;[newList[idx1], newList[idx2]] = [newList[idx2], newList[idx1]]
-    await saveLocalSort(newList)
-  } catch {}
-}
-
-async function saveLocalSort(list) {
-  try {
-    const items = list
-      .filter((it) => !it.isVirtual)
-      .map((it, idx) => ({ id: it.id, sort: idx }))
-    await sortCityProducts(items)
-    localSort.value = list
+    await sortCityProductPool(activeCityId.value, items)
+    localSort.value = list.map((it, idx) => ({ ...it, sort: idx }))
     await loadCityProducts(activeCityId.value)
     localSort.value = []
   } catch {}

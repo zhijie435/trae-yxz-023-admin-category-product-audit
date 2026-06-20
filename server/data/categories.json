@@ -214,5 +214,17 @@
     "status": 1,
     "createdAt": "2026-06-20T10:54:00.554Z",
     "updatedAt": "2026-06-20T10:54:00.554Z"
+  },
+  {
+    "id": "cat-1781953665236-ihnn0e",
+    "name": "新测试分类",
+    "parentId": null,
+    "level": 1,
+    "icon": "🎉",
+    "description": "新测试用分类",
+    "sort": 6,
+    "status": 1,
+    "createdAt": "2026-06-20T11:07:45.236Z",
+    "updatedAt": "2026-06-20T11:07:45.236Z"
   }
 ]
